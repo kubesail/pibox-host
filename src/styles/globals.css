@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blue: #3b89c7;
+  --gray: #5a5a4e;
+  --midGray: #a3a295;
+  --lightGray: #d8d8d4;
+  --darkBlue: #023142;
+  --yellow: #c98d09;
+}
+
+header {
+  background-color: var(--blue);
+  color: white;
+}
+
+body {
+  background-color: white;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

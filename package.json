@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NEXT_TELEMETRY_DISABLED=1 next dev -p 80",
     "build": "next build",
-    "start": "next start",
+    "start": "NEXT_TELEMETRY_DISABLED=1 next start -p 80",
     "lint": "next lint"
   },
   "dependencies": {
     "autoprefixer": "10.4.14",
+    "bcrypt": "^5.1.0",
     "eslint": "8.40.0",
     "eslint-config-next": "13.4.2",
     "next": "13.4.2",
