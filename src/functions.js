@@ -44,7 +44,7 @@ export async function middlewareAuth(req, res) {
   //   ],
   // };
 
-  const [_scheme, deviceKey] = req.headers.authorization.split(" ");
+  const [_scheme, deviceKey] = (req.headers?.authorization||'').split(" ");
   if (!deviceKey) {
     res.status(401).json({
       error:
