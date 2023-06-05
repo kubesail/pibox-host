@@ -8,10 +8,9 @@ export default async function handler(req, res) {
   try {
     const { stdout, stderr } = await execAsync("lsblk --json --bytes");
     const data = JSON.parse(stdout);
-    let disks = sanitizeLsblk(data.blockdevices);
+    let { totalCapacity, disks } = sanitizeLsblk(data.blockdevices);
     disks = await Promise.all(disks.map((device) => getSmartData(device)));
-
-    res.status(200).json(disks);
+    res.status(200).json({ totalCapacity, disks });
   } catch (err) {
     res.status(500).json({ error: "Disk error" });
     console.error(`exec error: ${err}`);
@@ -19,19 +18,26 @@ export default async function handler(req, res) {
   }
 }
 
+function bytesToHuman(sizeInBytes) {
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(sizeInBytes) / Math.log(1000));
+  return (sizeInBytes / Math.pow(1000, i)).toFixed(2) * 1 + " " + sizes[i];
+}
+
 function sanitizeLsblk(devices) {
-  return devices
+  let totalCapacity = 0;
+  const disks = devices
     .filter((device) => !device.name.startsWith("mmcblk"))
     .map((device) => {
       // Convert the drive size to a human-readable format
-      const sizeInBytes = device.size;
-      const sizes = ["B", "KB", "MB", "GB", "TB"];
-      const i = Math.floor(Math.log(sizeInBytes) / Math.log(1000));
-      const size =
-        (sizeInBytes / Math.pow(1000, i)).toFixed(2) * 1 + " " + sizes[i];
-
-      return { ...device, size, children: undefined };
+      totalCapacity += device.size;
+      return {
+        ...device,
+        size: bytesToHuman(device.size),
+        children: undefined,
+      };
     });
+  return { totalCapacity: bytesToHuman(totalCapacity), disks };
 }
 
 async function getSmartData(device) {

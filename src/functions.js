@@ -20,15 +20,29 @@ export async function createUser(user) {
       const [username] = user.split(":");
       return username;
     });
-    if (users.find((u) => u === user)) {
-      console.error(`User ${user} already exists`);
-      throw new Error("User already exists");
-    } else {
-      execAsync(`useradd -m -s /bin/bash ${user}`);
-    }
   } catch (err) {
-    console.error(`Error creating new user: ${err}`);
-    throw new Error("Error creating new user");
+    console.error(`Error listing users: ${err}`);
+    throw new Error("Error listing users");
+  }
+
+  if (users.find((u) => u === user)) {
+    console.error(`User ${user} already exists`);
+    throw new Error("User already exists");
+  } else {
+    execAsync(`useradd -m -s /bin/bash ${user}`);
+  }
+}
+
+export async function setPassword(user, password) {
+  // set password
+  console.log({ user, password });
+  try {
+    // await execAsync(`echo "${user}:${password}" | chpasswd`);
+    const output = await execAsync(`echo "${user}:${password}" | chpasswd`);
+    console.log(output.stdout);
+  } catch (err) {
+    console.error(`Error setting password: ${err}`);
+    throw new Error("Error setting password for user " + user);
   }
 }
 
@@ -44,7 +58,7 @@ export async function middlewareAuth(req, res) {
   //   ],
   // };
 
-  const [_scheme, deviceKey] = (req.headers?.authorization||'').split(" ");
+  const [_scheme, deviceKey] = (req.headers?.authorization || "").split(" ");
   if (!deviceKey) {
     res.status(401).json({
       error:
