@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   // Run lsblk command with the --json option
   // TODO once setup is complete, don't show let this route run again.
   try {
-    const { stdout, stderr } = await execAsync("lsblk --json --bytes");
+    const { stdout, stderr } = await execAsync("lsblk --json --bytes --output +UUID");
     const data = JSON.parse(stdout);
     let { totalCapacity, disks } = sanitizeLsblk(data.blockdevices);
     disks = await Promise.all(disks.map((device) => getSmartData(device)));

@@ -50,7 +50,11 @@ async function initialSetup(req, res) {
 
   // TODO give owner user sudo privileges
 
+  // TODO set drive passwords using sedutil-cli
+  // create drive password key and encrypt it with owner's deviceKey and password
+
   // TODO configure disks in RAID
+  // import & run createRAID1Array() from functions
 
   try {
     password = await bcrypt.hash(password, 12);

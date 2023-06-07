@@ -93,3 +93,20 @@ export async function middlewareAuth(req, res) {
   console.log("Authorized request from", req.user, req.url, device.name);
   return true;
 }
+
+function createRAID1Array() {
+  // const { execSync } = require('child_process');
+  // const drive1 = 'sda';
+  // const drive2 = 'sdb';
+  // // Format the drives
+  // console.log('Formatting drives...');
+  // execSync(`sudo parted /dev/${drive1} mklabel gpt`);
+  // execSync(`sudo parted /dev/${drive2} mklabel gpt`);
+  // // Create RAID 1 (mirror) array
+  // console.log('Creating RAID 1 (mirror) array...');
+  // execSync(`sudo mdadm --create --verbose /dev/md0 --level=1 --raid-devices=2 /dev/${drive1} /dev/${drive2}`);
+  // // Wait for the array to sync
+  // console.log('Waiting for the array to sync (this may take a while)...');
+  // execSync('sudo mdadm --wait /dev/md0');
+  // console.log('RAID 1 (mirror) array created successfully!');
+}
