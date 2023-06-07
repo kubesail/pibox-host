@@ -7,4 +7,4 @@ This NodeJS based service runs on the PiBox locally and provides the following f
 
 ## API Endpoints
 
-Endpoints are documented in Postman: https://piboxapi.postman.co/workspace/PiBox-Workspace~c3123c90-617a-436e-8e90-ffe5dc3b8162/collection/2213994-c9cde7ef-61ed-4c29-9410-6209da725830?action=share&creator=2213994
+Endpoints are documented in Postman: https://www.postman.com/piboxapi/workspace/pibox-workspace/collection/2213994-c9cde7ef-61ed-4c29-9410-6209da725830
