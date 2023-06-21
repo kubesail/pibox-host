@@ -4,8 +4,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 const execAsync = promisify(exec);
 import { createUser } from "@/functions";
 import bcrypt from "bcrypt";
-
-const CONFIG_FILE_PATH = "/root/.pibox/config.json";
+import { CONFIG_FILE_PATH } from "@/constants";
 
 export default async function handler(req, res) {
   let existingConfig;
