@@ -3,6 +3,13 @@ import { exec } from "child_process";
 import { readFile } from "fs/promises";
 const execAsync = promisify(exec);
 
+export function bytesToHuman(sizeInBytes) {
+  if (sizeInBytes === 0) return "0 B";
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(sizeInBytes) / Math.log(1000));
+  return (sizeInBytes / Math.pow(1000, i)).toFixed(0) * 1 + " " + sizes[i];
+}
+
 export async function createUser(user) {
   user = user.toLowerCase();
   // check that user is a valid unix username

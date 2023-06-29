@@ -13,6 +13,7 @@
     "bcrypt": "^5.1.0",
     "eslint": "8.40.0",
     "eslint-config-next": "13.4.2",
+    "file-type": "^18.5.0",
     "next": "13.4.2",
     "postcss": "8.4.23",
     "react": "18.2.0",

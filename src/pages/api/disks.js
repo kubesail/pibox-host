@@ -1,12 +1,15 @@
 import { promisify } from "util";
 import { exec } from "child_process";
+import { bytesToHuman } from "@/functions";
 const execAsync = promisify(exec);
 
 export default async function handler(req, res) {
   // Run lsblk command with the --json option
   // TODO once setup is complete, don't show let this route run again.
   try {
-    const { stdout, stderr } = await execAsync("lsblk --json --bytes --output +UUID");
+    const { stdout, stderr } = await execAsync(
+      "lsblk --json --bytes --output +UUID"
+    );
     const data = JSON.parse(stdout);
     let { totalCapacity, disks } = sanitizeLsblk(data.blockdevices);
     disks = await Promise.all(disks.map((device) => getSmartData(device)));
@@ -16,12 +19,6 @@ export default async function handler(req, res) {
     console.error(`exec error: ${err}`);
     return;
   }
-}
-
-function bytesToHuman(sizeInBytes) {
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(sizeInBytes) / Math.log(1000));
-  return (sizeInBytes / Math.pow(1000, i)).toFixed(2) * 1 + " " + sizes[i];
 }
 
 function sanitizeLsblk(devices) {

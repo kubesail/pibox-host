@@ -3,6 +3,8 @@ import { exec } from "child_process";
 import { readFile, writeFile, mkdir, stat, readdir } from "fs/promises";
 import fs from "fs";
 import { middlewareAuth, setPassword } from "@/functions";
+import { fileTypeFromFile } from "file-type";
+import { bytesToHuman } from "@/functions";
 const execAsync = promisify(exec);
 
 export default async function handler(req, res) {
@@ -32,23 +34,30 @@ export default async function handler(req, res) {
   // get the stats for each file and folder
   const filesWithStats = await Promise.all(
     filteredFiles.map(async (file) => {
-      const stats = await stat(`/files/${slug}/${file}`);
+      const filePath = `/files/${slug}/${file}`;
+      const stats = await stat(filePath);
       const isDirectory = stats.isDirectory();
-      return {
+      let mimeType = null;
+      if (!isDirectory) {
+        mimeType = await fileTypeFromFile(filePath);
+      }
+      console.log({ mimeType });
+      const res = {
         name: file,
-        isDirectory: isDirectory,
-        size: stats.size,
+        dir: isDirectory,
         mtime: stats.mtime,
         ctime: stats.ctime,
-        subItemCount: isDirectory
-          ? fs.readdirSync(`/files/${slug}/${file}`).length
-          : 0,
       };
+      if (isDirectory) {
+        res.subItemCount = fs.readdirSync(filePath).length;
+      } else {
+        res.size = bytesToHuman(stats.size);
+        res.mime = mimeType ? mimeType.mime : null;
+      }
+      return res;
     })
   );
-  res.json(filesWithStats);
-
-  return res.status(400).send(slug || "<NO SLUG>");
+  return res.json(filesWithStats);
 
   // if (req.method === "DELETE") {
   //   const username = req.query.username;
