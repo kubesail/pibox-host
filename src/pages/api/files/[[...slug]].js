@@ -19,16 +19,22 @@ export default async function handler(req, res) {
 
   const slug = req.query.slug ? req.query.slug.join("/") : "";
   console.log({ slug });
-  // console.log({ slug: req.query.slug });
 
-  // try {
-  //   // read all files and folders in the user's home directory
-  // } catch (err) {
-  //   console.error(`Error listing files: ${err}`);
-  //   return res.status(400).json({ error: err.message });
-  // }
+  const filePath = `/files/${slug}`;
+  const stats = await stat(filePath);
+  const isDirectory = stats.isDirectory();
+  if (!isDirectory) {
+    console.log("not a directory");
+    const mimeType = await fileTypeFromFile(filePath);
+    res.writeHead(200, {
+      "Content-Type": mimeType ? mimeType.mime : "application/octet-stream",
+      "Content-Length": stats.size,
+    });
+    fs.createReadStream(filePath).pipe(res);
+    return;
+  }
 
-  const files = await readdir(`/files/${slug}`);
+  const files = await readdir(filePath);
   // filter out hidden files and folders
   const filteredFiles = files.filter((file) => !file.startsWith("."));
   // get the stats for each file and folder
