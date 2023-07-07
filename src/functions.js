@@ -1,7 +1,8 @@
 import { promisify } from "util";
 import { exec } from "child_process";
 import { readFile } from "fs/promises";
-const execAsync = promisify(exec);
+
+export const execAsync = promisify(exec);
 
 export function bytesToHuman(sizeInBytes) {
   if (sizeInBytes === 0) return "0 B";

@@ -1,8 +1,5 @@
-import { promisify } from "util";
-import { exec } from "child_process";
 import { readFile, writeFile, mkdir } from "fs/promises";
-const execAsync = promisify(exec);
-import { createUser } from "@/functions";
+import { createUser, execAsync } from "@/functions";
 import bcrypt from "bcrypt";
 import { CONFIG_FILE_PATH } from "@/constants";
 

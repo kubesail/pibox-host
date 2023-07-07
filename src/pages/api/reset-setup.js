@@ -1,9 +1,5 @@
-import { promisify } from "util";
-import { exec } from "child_process";
 import { unlink } from "fs/promises";
-const execAsync = promisify(exec);
-import { middlewareAuth } from "@/functions";
-import bcrypt from "bcrypt";
+import { middlewareAuth, execAsync } from "@/functions";
 import { CONFIG_FILE_PATH } from "@/constants";
 
 export default async function handler(req, res) {
@@ -26,10 +22,22 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing confirmation" });
   }
 
+  const errors = [];
   try {
     await unlink(CONFIG_FILE_PATH);
   } catch (err) {
-    return res.status(500).json({ error: "Error deleting setup config file" });
+    errors.push("Error deleting setup config file");
+  }
+  
+  try {
+    // remove linux user and home directory (--remove-home)
+    await execAsync(`deluser --remove-home ${req.user}`);
+  } catch (err) {
+    errors.push(`Error deleting user: ${err}`);
+  }
+
+  if (errors.length) {
+    return res.status(500).json({ error: errors.join(", ") });
   }
   return res.status(200).json({ message: "Setup reset" });
 }

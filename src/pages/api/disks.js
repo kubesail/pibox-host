@@ -1,7 +1,4 @@
-import { promisify } from "util";
-import { exec } from "child_process";
-import { bytesToHuman } from "@/functions";
-const execAsync = promisify(exec);
+import { bytesToHuman, execAsync } from "@/functions";
 
 export default async function handler(req, res) {
   // Run lsblk command with the --json option
