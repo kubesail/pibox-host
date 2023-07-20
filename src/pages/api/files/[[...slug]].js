@@ -74,15 +74,19 @@ async function getFileOrDirListing({ req, res, path }) {
 
     const readableStream = fs.createReadStream(path);
     if (width && height) {
-      res.writeHead(200, headers);
-      const transformer = sharp().resize({
-        width,
-        height,
-        fit: sharp.fit.cover,
-        position: sharp.strategy.entropy,
-      });
-      console.log({ width, height });
-      readableStream.pipe(transformer).pipe(res);
+      try {
+        const transformer = sharp().resize({
+          width,
+          height,
+          fit: sharp.fit.cover,
+          position: sharp.strategy.entropy,
+        });
+        console.log({ width, height });
+        readableStream.pipe(transformer).pipe(res);
+        res.writeHead(200, headers);
+      } catch (err) {
+        res.status(400).json({ error: `Error resizing image: ${err}` });
+      }
     } else {
       headers["Content-Length"] = stats.size;
       res.writeHead(200, headers);
