@@ -3,6 +3,8 @@ import {
   setSystemPassword,
   getConfig,
   saveConfig,
+  execAsync,
+  getSystemSerial,
 } from "@/functions";
 
 export default async function handler(req, res) {
@@ -18,12 +20,15 @@ async function initialSetup(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  let { user, password, sessionKey, sessionName, sessionPlatform, disks } =
+  let { fullName, password, sessionKey, sessionName, sessionPlatform, disks } =
     req.body;
 
-  if (!user || !password) {
-    return res.status(400).json({ error: "Missing username or password" });
+  if (!fullName || !password) {
+    return res.status(400).json({ error: "Missing full name or password" });
   }
+
+  const firstName = fullName.split(" ")[0];
+  const user = firstName.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   if (!sessionKey || !sessionName || !sessionPlatform) {
     return res
@@ -37,24 +42,36 @@ async function initialSetup(req, res) {
       .json({ error: "One or more disks are required to complete setup" });
   }
 
-  user = user.toLowerCase();
+  try {
+    await execAsync(`userdel -r pi`); // delete default pi user
+  } catch (err) {
+    console.error(`Error deleting pi user: ${err}`);
+    if (!err.stderr.includes("does not exist")) {
+      throw err;
+    }
+  }
+
   try {
     await createUser(user);
     await setSystemPassword(user, password);
+    // give owner user sudo privileges
+    await execAsync(`adduser ${user} sudo`);
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
 
-  // TODO give owner user sudo privileges
-
   // TODO set drive passwords using sedutil-cli
   // create drive password key and encrypt it with owner's sessionKey and password
 
-  // TODO configure disks in RAID
+  // TODO configure disks in RAIDt
   // import & run createRAID1Array() from functions
+
+  const pluralName = firstName + (firstName.endsWith("s") ? "'" : "'s");
+  const serial = await getSystemSerial();
 
   const config = {
     owner: user,
+    deviceName: `${pluralName} PiBox (${serial.slice(-5)})`,
     sessions: [
       {
         user: user,

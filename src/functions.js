@@ -168,3 +168,15 @@ export async function setSystemPassword(username, password) {
     });
   });
 }
+
+export async function getSystemSerial() {
+  let serial = null;
+  try {
+    const { stdout, stderr } = await execAsync("ip link show eth0");
+    const macAddressRegex = /ether\s+([^\s]+)/;
+    serial = stdout.match(macAddressRegex)[1]?.replace(/:/g, "");
+  } catch (err) {
+    console.error(`Error retrieving serial (eth0 mac): ${err}`);
+  }
+  return serial;
+}
