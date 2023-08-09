@@ -1,16 +1,16 @@
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { createUser, execAsync } from "@/functions";
-import bcrypt from "bcrypt";
-import { CONFIG_FILE_PATH } from "@/constants";
+import {
+  createUser,
+  setSystemPassword,
+  getConfig,
+  saveConfig,
+} from "@/functions";
 
 export default async function handler(req, res) {
-  let existingConfig;
-  try {
-    existingConfig = await readFile(CONFIG_FILE_PATH, "utf8");
-  } catch (err) {
-    return initialSetup(req, res);
+  const config = await getConfig();
+  if (config) {
+    return res.status(400).json({ error: "Initial setup already completed" });
   }
-  res.status(400).json({ error: "Initial setup already completed" });
+  return initialSetup(req, res);
 }
 
 async function initialSetup(req, res) {
@@ -18,17 +18,17 @@ async function initialSetup(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  let { user, password, deviceKey, deviceName, devicePlatform, disks } =
+  let { user, password, sessionKey, sessionName, sessionPlatform, disks } =
     req.body;
 
   if (!user || !password) {
     return res.status(400).json({ error: "Missing username or password" });
   }
 
-  if (!deviceKey || !deviceName || !devicePlatform) {
+  if (!sessionKey || !sessionName || !sessionPlatform) {
     return res
       .status(400)
-      .json({ error: "Missing device key, name, or platform" });
+      .json({ error: "Missing session key, name, or platform" });
   }
 
   if (!disks || !Array.isArray(disks) || disks.length < 1) {
@@ -40,6 +40,7 @@ async function initialSetup(req, res) {
   user = user.toLowerCase();
   try {
     await createUser(user);
+    await setSystemPassword(user, password);
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -47,33 +48,23 @@ async function initialSetup(req, res) {
   // TODO give owner user sudo privileges
 
   // TODO set drive passwords using sedutil-cli
-  // create drive password key and encrypt it with owner's deviceKey and password
+  // create drive password key and encrypt it with owner's sessionKey and password
 
   // TODO configure disks in RAID
   // import & run createRAID1Array() from functions
 
-  try {
-    password = await bcrypt.hash(password, 12);
-  } catch (err) {
-    console.error("Error hashing passord", err);
-    return res
-      .status(500)
-      .json({ error: "Unable to hash password. Setup is not complete" });
-  }
-
   const config = {
     owner: user,
-    password,
-    devices: [
+    sessions: [
       {
         user: user,
-        key: deviceKey,
-        name: deviceName,
-        platform: devicePlatform,
+        key: sessionKey,
+        name: sessionName,
+        platform: sessionPlatform,
       },
     ],
   };
-  mkdir("/root/.pibox", { recursive: true });
-  await writeFile(CONFIG_FILE_PATH, JSON.stringify(config));
+
+  await saveConfig(config);
   res.status(200).json({ success: true });
 }

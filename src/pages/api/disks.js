@@ -8,9 +8,11 @@ export default async function handler(req, res) {
       "lsblk --json --bytes --output +UUID"
     );
     const data = JSON.parse(stdout);
-    let { totalCapacity, disks } = sanitizeLsblk(data.blockdevices);
+    let { totalCapacity, totalCapacityMirrored, disks } = sanitizeLsblk(
+      data.blockdevices
+    );
     disks = await Promise.all(disks.map((device) => getSmartData(device)));
-    res.status(200).json({ totalCapacity, disks });
+    res.status(200).json({ totalCapacity, totalCapacityMirrored, disks });
   } catch (err) {
     res.status(500).json({ error: "Disk error" });
     console.error(`exec error: ${err}`);
@@ -19,19 +21,27 @@ export default async function handler(req, res) {
 }
 
 function sanitizeLsblk(devices) {
-  let totalCapacity = 0;
+  let totalCapacityMirrored = 0;
+  let totalCapacity = [];
   const disks = devices
     .filter((device) => !device.name.startsWith("mmcblk"))
     .map((device) => {
       // Convert the drive size to a human-readable format
-      totalCapacity += device.size;
+      totalCapacity.push(device.size);
       return {
         ...device,
         size: bytesToHuman(device.size),
         children: undefined,
       };
     });
-  return { totalCapacity: bytesToHuman(totalCapacity), disks };
+
+  totalCapacityMirrored = totalCapacity.reduce((a, b) => a + b, 0);
+  totalCapacity = Math.min(...totalCapacity);
+  return {
+    totalCapacity: bytesToHuman(totalCapacity),
+    totalCapacityMirrored: bytesToHuman(totalCapacityMirrored),
+    disks,
+  };
 }
 
 async function getSmartData(device) {

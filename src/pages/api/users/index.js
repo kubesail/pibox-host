@@ -1,19 +1,13 @@
-import { promisify } from "util";
-import { exec } from "child_process";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { middlewareAuth, createUser, setPassword } from "@/functions";
-import { setTimeout } from "timers/promises";
-const execAsync = promisify(exec);
-
-const CONFIG_FILE_PATH = "/root/.pibox/config.json";
+import { readFile } from "fs/promises";
+import { createUser, setSystemPassword } from "@/functions";
 
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {
     return;
   }
 
-  if (req.isOwner !== true) {
-    return res.status(401).json({ error: "Unauthorized" });
+  if (!req.isOwner) {
+    return res.status(400).json({ error: "Only the owner can reset setup" });
   }
 
   if (req.method === "POST") {
@@ -22,8 +16,7 @@ export default async function handler(req, res) {
     }
     try {
       await createUser(req.body.username);
-      await setTimeout(1000); // PAM error if we don't wait
-      await setPassword(req.body.username, req.body.password);
+      await setSystemPassword(req.body.username, req.body.password);
     } catch (err) {
       console.error(`Error creating user: ${err}`);
       return res.status(400).json({ error: err.message });
@@ -54,7 +47,11 @@ async function listUsers(req, res) {
         user.split(":");
       return { username, shell };
     })
-    .filter((user) => user.shell === "/bin/bash" && user.username !== "root")
+    .filter(
+      (user) =>
+        ["/bin/bash", "/bin/zsh"].includes(user.shell) &&
+        user.username !== "root"
+    )
     .map((user) => {
       return {
         username: user.username,

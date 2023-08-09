@@ -17,6 +17,9 @@ export default async function handler(req, res) {
 
   if (req.method === "DELETE") {
     const username = req.query.username;
+    if (username === req.user) {
+      return res.status(400).json({ error: "Cannot delete yourself" });
+    }
     try {
       await execAsync(`userdel -r ${username}`);
     } catch (err) {

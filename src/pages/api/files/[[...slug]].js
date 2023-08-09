@@ -160,6 +160,9 @@ async function deleteFile({ res, filePath }) {
   try {
     await unlink(filePath);
   } catch (err) {
+    if (err.code === "ENOENT") {
+      return res.status(200).json({ message: "File already deleted" });
+    }
     return res.status(500).json({ error: `Error deleting file: ${err}` });
   }
   return res.status(200).json({ message: "File deleted" });

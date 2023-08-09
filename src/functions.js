@@ -1,6 +1,7 @@
 import { promisify } from "util";
-import { exec } from "child_process";
-import { readFile } from "fs/promises";
+import { exec, spawn } from "child_process";
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { CONFIG_FILE_PATH } from "@/constants";
 
 export const execAsync = promisify(exec);
 
@@ -41,19 +42,6 @@ export async function createUser(user) {
   }
 }
 
-export async function setPassword(user, password) {
-  // set password
-  console.log({ user, password });
-  try {
-    // await execAsync(`echo "${user}:${password}" | chpasswd`);
-    const output = await execAsync(`echo "${user}:${password}" | chpasswd`);
-    console.log(output.stdout);
-  } catch (err) {
-    console.error(`Error setting password: ${err}`);
-    throw new Error("Error setting password for user " + user);
-  }
-}
-
 export async function middlewareAuth(req, res) {
   // https://github.com/vercel/next.js/discussions/34179
   // TODO when Next.js supports Node runtimes in middlewares, move this function into a middleware for all routes
@@ -87,18 +75,19 @@ export async function middlewareAuth(req, res) {
     return false;
   }
 
-  const device = config.devices.find((device) => device.key === deviceKey);
-  if (!device) {
+  const sessions = config.sessions.find((session) => session.key === deviceKey);
+  if (!sessions) {
     res.status(401).json({
       error: "Unauthorized",
     });
     return false;
   }
-  req.user = device.user;
-  req.deviceName = device.name;
-  req.devicePlatform = device.platform;
-  req.isOwner = config.owner === device.user;
-  console.log("Authorized request from", req.user, req.url, device.name);
+  req.user = sessions.user;
+  req.deviceKey = sessions.key;
+  req.deviceName = sessions.name;
+  req.devicePlatform = sessions.platform;
+  req.isOwner = config.owner === sessions.user;
+  console.log("Authorized request from", req.user, req.url, sessions.name);
   return true;
 }
 
@@ -117,4 +106,65 @@ function createRAID1Array() {
   // console.log('Waiting for the array to sync (this may take a while)...');
   // execSync('sudo mdadm --wait /dev/md0');
   // console.log('RAID 1 (mirror) array created successfully!');
+}
+
+export async function getConfig() {
+  let config;
+  try {
+    config = JSON.parse(await readFile(CONFIG_FILE_PATH, "utf8"));
+  } catch (err) {
+    config = null;
+  }
+  return config;
+}
+
+export async function saveConfig(config) {
+  mkdir("/root/.pibox", { recursive: true });
+  await writeFile(CONFIG_FILE_PATH, JSON.stringify(config));
+}
+
+export async function checkSystemPassword(password, hashedPassword) {
+  return new Promise((resolve, reject) => {
+    let stderr = "";
+    let stdout = "";
+    const subprocess = spawn("/bin/mkpasswd", [password, hashedPassword]);
+    subprocess.stdout.on("data", (data) => (stdout += data));
+    subprocess.stderr.on("data", (data) => (stderr += data));
+    subprocess.on("close", (exitCode) => {
+      if (exitCode !== 0) {
+        // mkpassword exits with code 2 if a full hashed password is provided the password is incorrect
+        return resolve(false);
+      }
+      resolve(stdout.trim() === hashedPassword);
+    });
+  });
+}
+
+export async function setSystemPassword(username, password) {
+  return new Promise((resolve, reject) => {
+    let stderr = "";
+    let stdout = "";
+    const subprocess = spawn("/bin/mkpasswd", [password]);
+    subprocess.stdout.on("data", (data) => (stdout += data));
+    subprocess.stderr.on("data", (data) => (stderr += data));
+    subprocess.on("close", async (exitCode) => {
+      if (exitCode !== 0) {
+        console.error(`Error setting password: ${stderr}`);
+        return reject(new Error("Error setting password"));
+      }
+      const hash = stdout.trim();
+      let etcShadow = await readFile("/etc/shadow", "utf8");
+      etcShadow = etcShadow
+        .split("\n")
+        .map((line) => {
+          const parts = line.split(":");
+          if (username !== parts[0]) return line;
+          parts[1] = hash;
+          return parts.join(":");
+        })
+        .join("\n");
+      await writeFile("/etc/shadow", etcShadow);
+      resolve();
+    });
+  });
 }
