@@ -15,5 +15,5 @@ Endpoints are documented in Postman: https://www.postman.com/piboxapi/workspace/
 # Hdd tools, password tools
 sudo apt-get install -y smartmontools whois
 # Give sudoers NOPASSWD requirement (same as pi user)
-sudo sed -i 's/%sudo   ALL=(ALL:ALL) ALL/%sudo   ALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
+sudo sed -i 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
 ```
