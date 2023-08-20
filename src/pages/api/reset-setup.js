@@ -4,7 +4,7 @@ import { CONFIG_FILE_PATH } from "@/constants";
 
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {
-    return;
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   if (req.method !== "POST") {
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   } catch (err) {
     errors.push("Error deleting setup config file");
   }
-  
+
   try {
     // remove linux user and home directory (--remove-home)
     await execAsync(`deluser --remove-home ${req.user}`);

@@ -2,7 +2,12 @@ import { readFile } from "fs/promises";
 import { createUser, setSystemPassword } from "@/functions";
 
 export default async function handler(req, res) {
-  if (req.method === "POST") {
+  if (req.method === "GET") {
+    return listUsers(req, res);
+  } else if (req.method === "POST") {
+    if (!(await middlewareAuth(req, res))) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     if (!req.isOwner) {
       return res.status(400).json({ error: "Only the owner can reset setup" });
     }
@@ -18,8 +23,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: err.message });
     }
     return res.status(201).json({ message: "User created" });
-  } else if (req.method === "GET") {
-    return listUsers(req, res);
   } else {
     return res.status(405).json({ error: "Method not allowed" });
   }

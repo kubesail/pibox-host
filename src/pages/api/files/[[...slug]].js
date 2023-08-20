@@ -8,7 +8,7 @@ import sharp from "sharp";
 
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {
-    return;
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   //TODO check correct user permissions here

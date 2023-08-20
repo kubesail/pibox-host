@@ -2,7 +2,7 @@ import { middlewareAuth, getConfig, saveConfig } from "@/functions";
 
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {
-    return;
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   if (req.method !== "POST") {
@@ -11,6 +11,8 @@ export default async function handler(req, res) {
 
   const config = await getConfig();
   config.sessions = config.sessions.filter(
-    
+    (session) => session.username !== req.user
+  );
+
   await saveConfig(config);
 }
