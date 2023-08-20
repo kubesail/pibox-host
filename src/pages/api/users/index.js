@@ -2,15 +2,11 @@ import { readFile } from "fs/promises";
 import { createUser, setSystemPassword } from "@/functions";
 
 export default async function handler(req, res) {
-  if (!(await middlewareAuth(req, res))) {
-    return;
-  }
-
-  if (!req.isOwner) {
-    return res.status(400).json({ error: "Only the owner can reset setup" });
-  }
-
   if (req.method === "POST") {
+    if (!req.isOwner) {
+      return res.status(400).json({ error: "Only the owner can reset setup" });
+    }
+
     if (!req.body.username || !req.body.password) {
       return res.status(400).json({ error: "Missing username or password" });
     }
