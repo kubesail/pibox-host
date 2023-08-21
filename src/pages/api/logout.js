@@ -15,4 +15,5 @@ export default async function handler(req, res) {
   );
 
   await saveConfig(config);
+  res.status(200).json({ message: "success" })
 }
