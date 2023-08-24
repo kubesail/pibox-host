@@ -1,5 +1,5 @@
 import { readFile } from "fs/promises";
-import { createUser, setSystemPassword } from "@/functions";
+import { createUser, setSystemPassword, middlewareAuth } from "@/functions";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -12,14 +12,35 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Only the owner can reset setup" });
     }
 
-    if (!req.body.username || !req.body.password) {
-      return res.status(400).json({ error: "Missing username or password" });
+    let { username, fullName, password } = req.body;
+
+    if (!fullName || !password) {
+      return res.status(400).json({ error: "Missing full name or password" });
     }
+
+    if (!username) {
+      const firstName = fullName.split(" ")[0];
+      username = username || firstName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
     try {
-      await createUser(req.body.username);
-      await setSystemPassword(req.body.username, req.body.password);
+      await createUser(username, fullName);
     } catch (err) {
-      console.error(`Error creating user: ${err}`);
+      // console.log(err);
+      if (err.message.includes("already exists")) {
+        await createUser(
+          username + Math.floor(Math.random() * 10000),
+          fullName
+        );
+      } else {
+        console.error(`Error creating user: ${err}`);
+      }
+    }
+
+    try {
+      await setSystemPassword(username, password);
+    } catch (err) {
+      console.error(`Error setting user's password: ${err}`);
       return res.status(400).json({ error: err.message });
     }
     return res.status(201).json({ message: "User created" });
@@ -42,9 +63,9 @@ async function listUsers(req, res) {
   users = users
     .split("\n")
     .map((user) => {
-      const [username, _password, _uid, _gid, _gecos, _home, shell] =
+      const [username, _password, _uid, _gid, fullName, _home, shell] =
         user.split(":");
-      return { username, shell };
+      return { username, fullName, shell };
     })
     .filter(
       (user) =>
@@ -53,6 +74,7 @@ async function listUsers(req, res) {
     )
     .map((user) => {
       return {
+        fullName: user.fullName,
         username: user.username,
       };
     });

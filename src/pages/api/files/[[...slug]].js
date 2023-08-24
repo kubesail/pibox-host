@@ -1,8 +1,8 @@
 import { stat, readdir, rename, unlink, mkdir } from "fs/promises";
 import fs from "fs";
-import { middlewareAuth, setPassword } from "@/functions";
+import { middlewareAuth } from "@/functions";
 import { fileTypeFromFile } from "file-type";
-import { bytesToHuman, execAsync } from "@/functions";
+import { bytesToHuman } from "@/functions";
 import getRawBody from "raw-body";
 import sharp from "sharp";
 

@@ -1,7 +1,7 @@
 import { promisify } from "util";
 import { exec } from "child_process";
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { middlewareAuth, setPassword } from "@/functions";
+import { middlewareAuth, setSystemPassword } from "@/functions";
 const execAsync = promisify(exec);
 
 const CONFIG_FILE_PATH = "/root/.pibox/config.json";
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Cannot delete yourself" });
     }
     try {
-      await execAsync(`userdel -r ${username}`);
+      await execAsync(`deluser --remove-home ${username}`);
     } catch (err) {
       console.error(`Error deleting user: ${err}`);
       if (err.stderr.includes("does not exist")) {
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing password" });
     }
     try {
-      await setPassword(req.query.username, req.body.password);
+      await setSystemPassword(req.query.username, req.body.password);
       return res.status(200).json({ message: "Password updated" });
     } catch (err) {
       console.error(`Error setting password: ${err}`);

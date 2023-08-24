@@ -12,7 +12,7 @@ export function bytesToHuman(sizeInBytes) {
   return (sizeInBytes / Math.pow(1000, i)).toFixed(0) * 1 + " " + sizes[i];
 }
 
-export async function createUser(user) {
+export async function createUser(user, fullName) {
   user = user.toLowerCase();
   // check that user is a valid unix username
   if (!user.match(/^[a-z0-9_-]{0,30}$/)) {
@@ -35,10 +35,14 @@ export async function createUser(user) {
   }
 
   if (users.find((u) => u === user)) {
-    console.error(`User ${user} already exists`);
-    throw new Error("User already exists");
+    throw new Error(`User already exists (${user})`);
   } else {
-    execAsync(`useradd -m -s /bin/bash ${user}`);
+    // : is an invalid full name character because it is an /etc/passwd delimiter
+    fullName = fullName.replace(/:/g, "");
+    // use strong bash quotes (') to escape the full name, and
+    // sanitize fullName to escape any single quotes
+    fullName = fullName.replace(/'/g, `'\\''`);
+    execAsync(`useradd -m -s /bin/bash ${user} --comment '${fullName}'`);
   }
 }
 

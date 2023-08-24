@@ -28,7 +28,7 @@ async function initialSetup(req, res) {
   }
 
   const firstName = fullName.split(" ")[0];
-  const user = firstName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const username = firstName.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   if (!sessionKey || !sessionName || !sessionPlatform) {
     return res
@@ -43,7 +43,7 @@ async function initialSetup(req, res) {
   }
 
   try {
-    await execAsync(`userdel -r pi`); // delete default pi user
+    await execAsync(`deluser --remove-home pi`); // delete default pi user
   } catch (err) {
     console.error(`Error deleting pi user: ${err}`);
     if (!err.stderr.includes("does not exist")) {
@@ -52,10 +52,10 @@ async function initialSetup(req, res) {
   }
 
   try {
-    await createUser(user);
-    await setSystemPassword(user, password);
+    await createUser(username, fullName);
+    await setSystemPassword(username, password);
     // give owner user sudo privileges
-    await execAsync(`adduser ${user} sudo`);
+    await execAsync(`adduser ${username} sudo`);
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -70,11 +70,11 @@ async function initialSetup(req, res) {
   const serial = await getSystemSerial();
 
   const config = {
-    owner: user,
+    owner: username,
     deviceName: `${pluralName} PiBox (${serial.slice(-5)})`,
     sessions: [
       {
-        user: user,
+        user: username,
         key: sessionKey,
         name: sessionName,
         platform: sessionPlatform,
