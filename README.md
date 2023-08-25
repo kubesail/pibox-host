@@ -16,4 +16,6 @@ Endpoints are documented in Postman: https://www.postman.com/piboxapi/workspace/
 sudo apt-get install -y smartmontools whois
 # Give sudoers NOPASSWD requirement (same as pi user)
 sudo sed -i 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
+# Create root files directory (and mount it)
+mkdir /files
 ```
