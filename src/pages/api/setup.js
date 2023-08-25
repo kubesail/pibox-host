@@ -45,7 +45,6 @@ async function initialSetup(req, res) {
   try {
     await execAsync(`deluser --remove-home pi`); // delete default pi user
   } catch (err) {
-    console.error(`Error deleting pi user: ${err}`);
     if (!err.stderr.includes("does not exist")) {
       throw err;
     }
