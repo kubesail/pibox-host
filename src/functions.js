@@ -27,7 +27,7 @@ export async function createUser(user, fullName) {
   }
 
   // check that user is a valid unix username
-  if (!user.match(/^[a-z0-9_-]{0,30}$/)) {
+  if (!user.match(/^[a-z0-9_-]{1,30}$/)) {
     throw new Error(
       "Invalid username. Usernames must be less than 30 characters and consist of only alphanumeric characters, dashes, or underscores"
     );
