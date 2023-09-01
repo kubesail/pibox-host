@@ -35,8 +35,8 @@ function sanitizeLsblk(devices) {
       };
     });
 
-  totalCapacity = totalCapacity.reduce((a, b) => a + b, 0);
   totalCapacityMirrored = Math.min(...totalCapacity);
+  totalCapacity = totalCapacity.reduce((a, b) => a + b, 0);
   return {
     totalCapacity: bytesToHuman(totalCapacity),
     totalCapacityMirrored: bytesToHuman(totalCapacityMirrored),
