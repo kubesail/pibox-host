@@ -14,6 +14,18 @@ export function bytesToHuman(sizeInBytes) {
 
 export async function createUser(user, fullName) {
   user = user.toLowerCase();
+
+  const beginWithRegex = /^[a-z]/i;
+  if (
+    typeof user !== "string" ||
+    user.length < 1 ||
+    !beginWithRegex.test(user)
+  ) {
+    throw new Error(
+      "Your full name must start with a standard character (A-Z)"
+    );
+  }
+
   // check that user is a valid unix username
   if (!user.match(/^[a-z0-9_-]{0,30}$/)) {
     throw new Error(
