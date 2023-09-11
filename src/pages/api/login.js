@@ -12,12 +12,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing username or password" });
   }
 
-  if (!sessionKey || !sessionName || !sessionPlatform) {
-    return res
-      .status(400)
-      .json({ error: "Missing session key, name, or platform" });
-  }
-
   // read /etc/shadow
   let etcShadowUser;
   try {
@@ -47,14 +41,16 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Incorrect password" });
   }
 
-  const config = await getConfig();
-  config.sessions.push({
-    user: user,
-    key: sessionKey,
-    name: sessionName,
-    platform: sessionPlatform,
-  });
-  await saveConfig(config);
+  if (sessionKey && sessionName && sessionPlatform) {
+    const config = await getConfig();
+    config.sessions.push({
+      user: user,
+      key: sessionKey,
+      name: sessionName,
+      platform: sessionPlatform,
+    });
+    await saveConfig(config);
+  }
 
   res.status(200).json({ message: "Login successful" });
 }
