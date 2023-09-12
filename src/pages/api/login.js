@@ -41,7 +41,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Incorrect password" });
   }
 
-  if (sessionKey && sessionName && sessionPlatform) {
+  if (
+    sessionKey &&
+    sessionName &&
+    sessionPlatform &&
+    !config.sessions.find((session) => session.key === sessionKey)
+  ) {
     const config = await getConfig();
     config.sessions.push({
       user: user,
