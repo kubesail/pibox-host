@@ -1,19 +1,17 @@
-import { middlewareAuth, getConfig, saveConfig } from "@/functions";
+import { getConfig, saveConfig } from "@/functions";
 
 export default async function handler(req, res) {
-  if (!(await middlewareAuth(req, res))) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const config = await getConfig();
+  const [_scheme, deviceKey] = (req.headers?.authorization || "").split(" ");
+  console.log("Logging out", deviceKey);
   config.sessions = config.sessions.filter(
-    (session) => session.username !== req.user
+    (session) => session.key !== deviceKey
   );
 
   await saveConfig(config);
-  res.status(200).json({ message: "success" })
+  res.status(200).json({ message: "success" });
 }
