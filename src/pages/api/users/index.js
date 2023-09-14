@@ -1,5 +1,10 @@
 import { readFile } from "fs/promises";
-import { createUser, setSystemPassword, middlewareAuth } from "@/functions";
+import {
+  createUser,
+  setSystemPassword,
+  middlewareAuth,
+  getConfig,
+} from "@/functions";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -9,7 +14,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     if (!req.isOwner) {
-      return res.status(400).json({ error: "Only the owner can reset setup" });
+      return res.status(400).json({ error: "Only the owner can create users" });
     }
 
     let { username, fullName, password } = req.body;
@@ -50,6 +55,7 @@ export default async function handler(req, res) {
 }
 
 async function listUsers(req, res) {
+  const config = await getConfig();
   let users;
   try {
     users = await readFile("/etc/passwd", "utf8");
@@ -65,7 +71,7 @@ async function listUsers(req, res) {
     .map((user) => {
       const [username, _password, _uid, _gid, fullName, _home, shell] =
         user.split(":");
-      return { username, fullName, shell };
+      return { username, fullName, shell, isOwner: username === config.owner };
     })
     .filter(
       (user) =>
