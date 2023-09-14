@@ -71,7 +71,7 @@ async function listUsers(req, res) {
     .map((user) => {
       const [username, _password, _uid, _gid, fullName, _home, shell] =
         user.split(":");
-      return { username, fullName, shell, isOwner: username === config.owner };
+      return { username, fullName, shell };
     })
     .filter(
       (user) =>
@@ -82,6 +82,7 @@ async function listUsers(req, res) {
       return {
         fullName: user.fullName,
         username: user.username,
+        isOwner: user.username === config.owner,
       };
     });
 
