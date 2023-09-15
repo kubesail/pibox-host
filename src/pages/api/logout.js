@@ -7,7 +7,6 @@ export default async function handler(req, res) {
 
   const config = await getConfig();
   const [_scheme, deviceKey] = (req.headers?.authorization || "").split(" ");
-  console.log("Logging out", deviceKey);
   config.sessions = config.sessions.filter(
     (session) => session.key !== deviceKey
   );
