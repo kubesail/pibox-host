@@ -56,6 +56,10 @@ export default async function handler(req, res) {
 
 async function listUsers(req, res) {
   const config = await getConfig();
+  if (!config) {
+    return res.status(400).json({ error: "Device not set up yet" });
+  }
+
   let users;
   try {
     users = await readFile("/etc/passwd", "utf8");
