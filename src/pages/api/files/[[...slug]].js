@@ -61,6 +61,7 @@ async function getFileOrDirListing({ req, res, path }) {
   } catch (err) {
     return res.status(404).json({ error: `File not found` });
   }
+
   const isDirectory = stats.isDirectory();
 
   if (!isDirectory) {
@@ -125,7 +126,18 @@ async function getFileOrDirListing({ req, res, path }) {
       return res;
     })
   );
-  return res.json(filesWithStats);
+
+  // TODO get real disk stats from /dev/mdX
+  const diskUsed = "240GB";
+  const diskTotal = "1TB";
+  const diskPercent = "0.24";
+  res.writeHead(200, {
+    "Content-Type": "application/json",
+    "X-Pibox-Disk-Used": diskUsed,
+    "X-Pibox-Disk-Total": diskTotal,
+    "X-Pibox-Disk-Percent": diskPercent,
+  });
+  return res.end(JSON.stringify(filesWithStats));
 }
 
 async function renameFile({ res, oldPath, newPath }) {
