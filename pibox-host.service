@@ -1,0 +1,13 @@
+[Unit]
+Description=PiBox Host Server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/pibox-host/PIBOX_HOST_VERSION/server.js
+WorkingDirectory=/opt/pibox-host/PIBOX_HOST_VERSION/
+Restart=always
+RestartSec=5s
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
