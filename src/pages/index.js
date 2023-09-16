@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -23,10 +24,7 @@ export default function Home() {
 
         <section className="px-8 pt-4 container mx-auto">
           <p>
-            See{" "}
-            <a href="/disks" className="">
-              Disks
-            </a>
+            See <Link href="/disks">Disks</Link>
           </p>
         </section>
       </main>
