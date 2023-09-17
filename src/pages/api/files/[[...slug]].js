@@ -86,7 +86,7 @@ async function getFileOrDirListing({ req, res, path }) {
         readableStream.pipe(transformer).pipe(res);
         res.writeHead(200, headers);
       } catch (err) {
-        res.status(400).json({ error: `Error resizing image: ${err}` });
+        return res.status(400).json({ error: `Error resizing image: ${err}` });
       }
     } else {
       headers["Content-Length"] = stats.size;

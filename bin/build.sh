@@ -13,7 +13,7 @@ rm -rf .next
 rm -rf node_modules
 yarn install --production
 NEXT_TELEMETRY_DISABLED=1 yarn next build
-tar -cvzf pibox-host-$PIBOX_HOST_VERSION.tar.gz .next server.js node_modules
+tar -cvzf pibox-host-$PIBOX_HOST_VERSION.tar.gz .next server.js node_modules package.json pibox-host.service
 
 # Prompt for publishing to GitHub
 echo "Would you like to publish a new release to GitHub? (y/n)"
