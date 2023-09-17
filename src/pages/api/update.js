@@ -2,7 +2,7 @@ const https = require("https");
 const fs = require("fs");
 import { readFile, writeFile, readdir, rm, mkdir } from "fs/promises";
 import { join } from "path";
-import { middlewareAuth } from "@/functions";
+import { middlewareAuth, getConfig, saveConfig } from "@/functions";
 import { exec } from "child_process";
 import { promisify } from "util";
 export const execAsync = promisify(exec);
@@ -31,22 +31,17 @@ async function checkForUpdates(req, res) {
   const releases = await ghResponse.json();
   const latestRelease = releases[0];
   const latestVersion = latestRelease.tag_name;
-
+  const currentVersion = `v${version}`;
   return res.status(200).json({
-    currentVersion: `v${version}`,
+    currentVersion,
     latestVersion,
-    updateAvailable: latestVersion !== version,
+    updateAvailable: latestVersion !== currentVersion,
     changelog: latestRelease.body,
   });
 }
 
 async function update(req, res) {
   // remove all other folders in /opt/pibox-host that are not current version
-  // download latest release
-  // extract to /opt/pibox-host
-  // update pibox-host service file
-  // restart pibox-host service
-  // return success
 
   const allVersions = await readdir("/opt/pibox-host", { withFileTypes: true });
   const { version } = JSON.parse(await readFile("package.json", "utf8"));
@@ -58,6 +53,22 @@ async function update(req, res) {
     console.log(`Removing old version ${path}`);
     await rm(path, { recursive: true, force: true });
   }
+
+  const ghResponse = await fetch(
+    "https://api.github.com/repos/kubesail/pibox-host/releases"
+  );
+  const releases = await ghResponse.json();
+  const latestRelease = releases[0];
+  const latestVersion = latestRelease.assets.find(
+    (asset) => asset.name === `pibox-host-${latestRelease.tag_name}.tar.gz`
+  );
+  const downloadSize = latestVersion.size;
+  // save download size to config file
+  let config = await getConfig();
+  config.downloadInProgress = true;
+  config.downloadSize = downloadSize;
+  config.downloadPath = `/opt/pibox-host/${latestRelease.tag_name}.tar.gz`;
+  await saveConfig(config);
 
   // Download new version
   const { version: newVersion } = req.body;
@@ -72,10 +83,10 @@ async function update(req, res) {
     return res.status(400).json({ message: "Update failed" });
   }
 
-  // untar file
+  // untar update
   const newPath = `/opt/pibox-host/${newVersion}`;
   // mkdir newPath
-  await mkdir(newPath);
+  await mkdir(newPath, { recursive: true });
   await execAsync(`tar -xzf ${destinationPath} -C ${newPath}`);
   await rm(destinationPath);
 
@@ -89,8 +100,13 @@ async function update(req, res) {
   await writeFile("/etc/systemd/system/pibox-host.service", newServiceFile);
 
   // restart pibox-host service
-  // await execAsync("systemctl daemon-reload");
-  // await execAsync("systemctl restart pibox-host");
+  await execAsync("systemctl daemon-reload");
+  await execAsync("systemctl restart pibox-host");
+
+  config = await getConfig();
+  config.downloadInProgress = false;
+  config.downloadSize = 0;
+  await saveConfig(config);
 
   return res.status(200).json({ message: "Update complete" });
 }
