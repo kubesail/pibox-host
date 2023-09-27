@@ -84,10 +84,13 @@ export async function middlewareAuth(req, res) {
     const configFile = await readFile("/root/.pibox/config.json", "utf8");
     config = JSON.parse(configFile);
   } catch (err) {
-    console.log("Error reading config file", err);
-    res.status(401).json({
-      error: "Unauthorized",
-    });
+    if (err.code === "ENOENT") {
+      console.log(
+        "Config file not found. Please run initial setup first."
+      );
+    } else {
+      console.log("Error reading config file", err);
+    }
     return false;
   }
 
