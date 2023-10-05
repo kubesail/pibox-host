@@ -99,16 +99,18 @@ async function update(req, res) {
   const newServiceFile = serviceFile.replace(/PIBOX_HOST_VERSION/g, newVersion);
   await writeFile("/etc/systemd/system/pibox-host.service", newServiceFile);
 
+  config = await getConfig();
+  config.downloadInProgress = false;
+  delete config.downloadSize;
+  delete config.downloadPath;
+  await saveConfig(config);
+  res.status(200).json({ message: "Update complete, restarting" });
+
   // restart pibox-host service
   await execAsync("systemctl daemon-reload");
   await execAsync("systemctl restart pibox-host");
 
-  config = await getConfig();
-  config.downloadInProgress = false;
-  config.downloadSize = 0;
-  await saveConfig(config);
-
-  return res.status(200).json({ message: "Update complete" });
+  return;
 }
 
 function downloadFile(url, destinationPath) {

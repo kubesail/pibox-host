@@ -85,9 +85,7 @@ export async function middlewareAuth(req, res) {
     config = JSON.parse(configFile);
   } catch (err) {
     if (err.code === "ENOENT") {
-      console.log(
-        "Config file not found. Please run initial setup first."
-      );
+      console.log("Config file not found. Please run initial setup first.");
     } else {
       console.log("Error reading config file", err);
     }

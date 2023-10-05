@@ -53,11 +53,14 @@ async function getSmartData(device) {
     if (!vendor) {
       vendor = data.model_name.split(" ")[0];
     }
+    console.log("smartdata", /CT\d+BX500SSD1/i.test(data.model_name));
     const smartData = {
       name: device.name,
       size: device.size,
       serial: data.serial_number,
-      model: MODELS[data.model_name] || data.model_name,
+      model:
+        MODELS.find((model) => model.regex.test(data.model_name))?.name ||
+        data.model_name,
       vendor: VENDORS[vendor] || vendor,
     };
     return smartData;
@@ -72,8 +75,8 @@ const VENDORS = {
   // TODO if model starts with Samsung, then vendor is "Samsung"
 };
 
-const MODELS = {
-  CT1000BX500SSD1: "BX500",
-  CT1000MX500SSD1: "MX500",
-  "Samsung SSD 870 EVO 1TB": "870 EVO",
-};
+const MODELS = [
+  { regex: /CT\d+MX500SSD1/i, name: "MX500" },
+  { regex: /CT\d+BX500SSD1/i, name: "BX500" },
+  { regex: /Samsung SSD 870 EVO/, name: "870 EVO" },
+];

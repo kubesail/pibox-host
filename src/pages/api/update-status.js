@@ -6,7 +6,10 @@ export default async function handler(req, res) {
   if (config.downloadInProgress) {
     // check download progress
     // find the tar file in /opt/pibox-host
-    const downloadStat = await stat(config.downloadPath);
+    let downloadStat;
+    try {
+      downloadStat = await stat(config.downloadPath);
+    } catch {}
     return res.status(200).json({
       downloadInProgress: true,
       downloadSize: config.downloadSize,

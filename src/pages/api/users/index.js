@@ -5,6 +5,9 @@ import {
   middlewareAuth,
   getConfig,
 } from "@/functions";
+import randomColor from "randomcolor";
+
+const PRESET_COLORS = "#1BBE4D,#D96CFF,#FF7896,#F9F871,#5C83FF".split(",");
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -19,8 +22,8 @@ export default async function handler(req, res) {
 
     let { username, fullName, password } = req.body;
 
-    if (!fullName || !password) {
-      return res.status(400).json({ error: "Missing full name or password" });
+    if (!fullName) {
+      return res.status(400).json({ error: "Missing full name" });
     }
 
     if (!username) {
@@ -42,12 +45,17 @@ export default async function handler(req, res) {
       }
     }
 
-    try {
-      await setSystemPassword(username, password);
-    } catch (err) {
-      console.error(`Error setting user's password: ${err}`);
-      return res.status(400).json({ error: err.message });
+    if (password) {
+      try {
+        await setSystemPassword(username, password);
+      } catch (err) {
+        console.error(`Error setting user's password: ${err}`);
+        return res.status(400).json({ error: err.message });
+      }
     }
+    const config = await getConfig();
+    config.users.push({ username, fullName });
+    await writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2));
     return res.status(201).json({ message: "User created" });
   } else {
     return res.status(405).json({ error: "Method not allowed" });
@@ -82,11 +90,24 @@ async function listUsers(req, res) {
         ["/bin/bash", "/bin/zsh"].includes(user.shell) &&
         user.username !== "root"
     )
-    .map((user) => {
+    .sort((user) => {
+      // sort owner first
+      if (user.username === config.owner) return -1;
+      return 0;
+    })
+    .map((user, index) => {
+      console.log(index);
       return {
         fullName: user.fullName,
         username: user.username,
         isOwner: user.username === config.owner,
+        color:
+          PRESET_COLORS[index]?.toLowerCase() ||
+          randomColor({
+            luminosity: "light",
+            format: "hex",
+            seed: index * 3,
+          }),
       };
     });
 

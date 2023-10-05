@@ -11,9 +11,20 @@ export default async function handler(req, res) {
 
   try {
     const { stdout, stderr } = await execAsync(`sudo -u ${req.user} whoami`);
-    res
-      .status(200)
-      .json({ piboxConfigUser: req.user, linuxUser: stdout.trim() });
+    const passwordSet =
+      (await readFile("/etc/shadow", "utf8"))
+        .split("\n")
+        .map((line) => {
+          const [username, hash] = line.split(":");
+          return { username, hash };
+        })
+        .find((user) => user.username === req.user)?.hash !== "!";
+
+    res.status(200).json({
+      piboxConfigUser: req.user,
+      linuxUser: stdout.trim(),
+      passwordSet,
+    });
   } catch (err) {
     console.error(`Error looking up user: ${err}`);
     res
