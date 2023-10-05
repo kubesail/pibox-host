@@ -75,12 +75,15 @@ async function update(req, res) {
   console.log(`Downloading new version ${newVersion}`);
   const url = `https://github.com/kubesail/pibox-host/releases/download/${newVersion}/pibox-host-${newVersion}.tar.gz`;
   const destinationPath = `/opt/pibox-host/${newVersion}.tar.gz`;
+  res.status(200).json({
+    message: "Update started. Check update status route for progress.",
+  });
+
   try {
     const result = await downloadFile(url, destinationPath);
     console.log(result);
   } catch (err) {
     console.log(err);
-    return res.status(400).json({ message: "Update failed" });
   }
 
   // untar update
@@ -104,7 +107,6 @@ async function update(req, res) {
   delete config.downloadSize;
   delete config.downloadPath;
   await saveConfig(config);
-  res.status(200).json({ message: "Update complete, restarting" });
 
   // restart pibox-host service
   await execAsync("systemctl daemon-reload");
