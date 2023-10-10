@@ -9,6 +9,7 @@ import sharp from 'sharp';
 const PIBOX_FILES_PREFIX = '/pibox/files/';
 
 function checkAccess(piboxConfig, user, slug) {
+  // TODO check this, (e.g. /files/vac might also match /files/vacation)
   piboxConfig.shares.forEach((share) => {
     if (slug.startsWith(share.path) && share.users.includes(user)) {
       return true;
