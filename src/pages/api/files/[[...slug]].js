@@ -1,12 +1,10 @@
 import { stat, readdir, rename, unlink, mkdir } from 'fs/promises';
 import fs from 'fs';
-import { getConfig, middlewareAuth } from '@/functions';
+import { getConfig, middlewareAuth, bytesToHuman } from '@/functions';
 import { fileTypeFromFile } from 'file-type';
-import { bytesToHuman } from '@/functions';
 import getRawBody from 'raw-body';
 import sharp from 'sharp';
-
-const PIBOX_FILES_PREFIX = '/pibox/files/';
+import { PIBOX_FILES_PREFIX } from '@/constants';
 
 function checkAccess(piboxConfig, user, slug) {
   // TODO check this, (e.g. /files/vac might also match /files/vacation)
@@ -47,6 +45,7 @@ export default async function handler(req, res) {
   } else if (req.method === 'POST') {
     const body = await getRawBody(req);
     const { newPath } = JSON.parse(body);
+    // TODO update sharing permissions if newPath is a folder
     return await renameFile({ res, oldPath: filePath, newPath });
   } else if (req.method === 'DELETE') {
     return await deleteFile({ res, filePath });

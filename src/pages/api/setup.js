@@ -55,6 +55,7 @@ async function initialSetup(req, res) {
     await setSystemPassword(username, password);
     // give owner user sudo privileges
     await execAsync(`adduser ${username} sudo`);
+    await execAsync(`usermod -aG sambagroup ${username}`);
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
