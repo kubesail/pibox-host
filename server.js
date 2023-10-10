@@ -6,6 +6,9 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = process.env.PORT || 80;
 
+// Always initialized to false, require the user to unlock the drive on boot
+global.LVM_MOUNTED = false;
+
 // when using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();

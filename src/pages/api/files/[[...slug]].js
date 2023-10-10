@@ -1,44 +1,56 @@
-import { stat, readdir, rename, unlink, mkdir } from "fs/promises";
-import fs from "fs";
-import { middlewareAuth } from "@/functions";
-import { fileTypeFromFile } from "file-type";
-import { bytesToHuman } from "@/functions";
-import getRawBody from "raw-body";
-import sharp from "sharp";
+import { stat, readdir, rename, unlink, mkdir } from 'fs/promises';
+import fs from 'fs';
+import { getConfig, middlewareAuth } from '@/functions';
+import { fileTypeFromFile } from 'file-type';
+import { bytesToHuman } from '@/functions';
+import getRawBody from 'raw-body';
+import sharp from 'sharp';
+
+const PIBOX_FILES_PREFIX = '/pibox/files/';
+
+function checkAccess(piboxConfig, user, slug) {
+  piboxConfig.shares.forEach((share) => {
+    if (slug.startsWith(share.path) && share.users.includes(user)) {
+      return true;
+    }
+  });
+  return false;
+}
 
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  //TODO check correct user permissions here
-  if (req.isOwner !== true) {
-    return res.status(401).json({ error: "Unauthorized" });
+  const piboxConfig = await getConfig();
+
+  if (!req.isOwner && !checkAccess(piboxConfig, req.user, req.query.slug)) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const slug = req.query.slug ? req.query.slug.join("/") : "";
-  const filePath = `/files/${slug}`;
+  const slug = req.query.slug ? req.query.slug.join('/') : '';
+  const filePath = `${PIBOX_FILES_PREFIX}${slug}`;
 
   // basic CRUD operations
-  if (req.method === "PUT") {
-    const contentLength = req.headers["content-length"];
-    if (contentLength === "0") {
-      console.log("Creating folder");
+  if (req.method === 'PUT') {
+    const contentLength = req.headers['content-length'];
+    if (contentLength === '0') {
+      console.log('Creating folder');
       return await createFolder({ res, path: filePath });
     } else {
-      console.log("Uploading file");
+      console.log('Uploading file');
       return await uploadFile({ req, res, filePath });
     }
-  } else if (req.method === "GET") {
-    return await getFileOrDirListing({ req, res, path: filePath });
-  } else if (req.method === "POST") {
+  } else if (req.method === 'GET') {
+    return await getFileOrDirListing({ req, res, path: filePath, piboxConfig, slug });
+  } else if (req.method === 'POST') {
     const body = await getRawBody(req);
     const { newPath } = JSON.parse(body);
     return await renameFile({ res, oldPath: filePath, newPath });
-  } else if (req.method === "DELETE") {
+  } else if (req.method === 'DELETE') {
     return await deleteFile({ res, filePath });
   } else {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 }
 
@@ -46,15 +58,15 @@ async function createFolder({ res, path }) {
   try {
     await mkdir(path);
   } catch (err) {
-    if (err.code === "EEXIST") {
+    if (err.code === 'EEXIST') {
       return res.status(409).json({ error: `Folder already exists` });
     }
     return res.status(500).json({ error: `Error creating folder: ${err}` });
   }
-  return res.status(200).json({ message: "Folder created" });
+  return res.status(200).json({ message: 'Folder created' });
 }
 
-async function getFileOrDirListing({ req, res, path }) {
+async function getFileOrDirListing({ req, res, path, piboxConfig, slug }) {
   let stats;
   try {
     stats = await stat(path);
@@ -65,12 +77,12 @@ async function getFileOrDirListing({ req, res, path }) {
   const isDirectory = stats.isDirectory();
 
   if (!isDirectory) {
-    console.log("not a directory");
-    let width = parseInt(req.headers["x-pibox-width"], 10);
-    let height = parseInt(req.headers["x-pibox-height"], 10);
+    console.log('not a directory');
+    let width = parseInt(req.headers['x-pibox-width'], 10);
+    let height = parseInt(req.headers['x-pibox-height'], 10);
     const mimeType = await fileTypeFromFile(path);
     const headers = {
-      "Content-Type": mimeType ? mimeType.mime : "application/octet-stream",
+      'Content-Type': mimeType ? mimeType.mime : 'application/octet-stream',
     };
 
     const readableStream = fs.createReadStream(path);
@@ -89,7 +101,7 @@ async function getFileOrDirListing({ req, res, path }) {
         return res.status(400).json({ error: `Error resizing image: ${err}` });
       }
     } else {
-      headers["Content-Length"] = stats.size;
+      headers['Content-Length'] = stats.size;
       res.writeHead(200, headers);
       readableStream.pipe(res);
     }
@@ -99,7 +111,7 @@ async function getFileOrDirListing({ req, res, path }) {
 
   const files = await readdir(path);
   // filter out hidden files and folders
-  const filteredFiles = files.filter((file) => !file.startsWith("."));
+  const filteredFiles = files.filter((file) => !file.startsWith('.'));
   // get the stats for each file and folder
   const filesWithStats = await Promise.all(
     filteredFiles.map(async (file) => {
@@ -110,7 +122,6 @@ async function getFileOrDirListing({ req, res, path }) {
       if (!isDirectory) {
         mimeType = await fileTypeFromFile(entryPath);
       }
-      console.log({ mimeType });
       const res = {
         name: file,
         dir: isDirectory,
@@ -128,28 +139,35 @@ async function getFileOrDirListing({ req, res, path }) {
   );
 
   // TODO get real disk stats from /dev/mdX
-  const diskUsed = "240GB";
-  const diskTotal = "1TB";
-  const diskPercent = "0.24";
-  res.writeHead(200, {
-    "Content-Type": "application/json",
-    "X-Pibox-Disk-Used": diskUsed,
-    "X-Pibox-Disk-Total": diskTotal,
-    "X-Pibox-Disk-Percent": diskPercent,
-  });
+  const diskUsed = '240GB';
+  const diskTotal = '1TB';
+  const diskPercent = '0.24';
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Pibox-Disk-Used': diskUsed,
+    'X-Pibox-Disk-Total': diskTotal,
+    'X-Pibox-Disk-Percent': diskPercent,
+  };
+  if (req.isOwner) {
+    const users = piboxConfig.shares.find((share) => slug.startsWith(share.path))?.users;
+    if (users?.length) {
+      headers['X-Pibox-Access'] = users.join(',');
+    }
+  }
+  res.writeHead(200, headers);
   return res.end(JSON.stringify(filesWithStats));
 }
 
 async function renameFile({ res, oldPath, newPath }) {
   if (!newPath) {
-    return res.status(400).json({ error: "Missing newPath" });
+    return res.status(400).json({ error: 'Missing newPath' });
   }
   try {
     await rename(oldPath, newPath);
   } catch (err) {
     return res.status(500).json({ error: `Error renaming file: ${err}` });
   }
-  return res.status(200).json({ message: "File renamed" });
+  return res.status(200).json({ message: 'File renamed' });
 }
 
 function uploadFile({ req, res, filePath }) {
@@ -157,13 +175,13 @@ function uploadFile({ req, res, filePath }) {
     // pipe the incoming request to the file path
     const stream = fs.createWriteStream(filePath);
     req.pipe(stream);
-    req.on("error", (err) => {
+    req.on('error', (err) => {
       console.error(`Error uploading file: ${err}`);
       return reject(res.status(500).json({ error: err.message }));
     });
-    req.on("end", () => {
-      console.log("File uploaded");
-      resolve(res.status(200).json({ message: "File uploaded" }));
+    req.on('end', () => {
+      console.log('File uploaded');
+      resolve(res.status(200).json({ message: 'File uploaded' }));
     });
   });
 }
@@ -172,12 +190,12 @@ async function deleteFile({ res, filePath }) {
   try {
     await unlink(filePath);
   } catch (err) {
-    if (err.code === "ENOENT") {
-      return res.status(200).json({ message: "File already deleted" });
+    if (err.code === 'ENOENT') {
+      return res.status(200).json({ message: 'File already deleted' });
     }
     return res.status(500).json({ error: `Error deleting file: ${err}` });
   }
-  return res.status(200).json({ message: "File deleted" });
+  return res.status(200).json({ message: 'File deleted' });
 }
 
 export const config = {

@@ -26,6 +26,6 @@ export default async function handler(req, res) {
     publicKey: "AAAABBBB",
     version: version,
     setupComplete: !!config,
-    newHddAvailable: config.newHddAvailable || false,
+    newHddAvailable: config?.newHddAvailable || false,
   });
 }

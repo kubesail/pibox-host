@@ -22,5 +22,9 @@
     "react-dom": "18.2.0",
     "sharp": "^0.32.1",
     "tailwindcss": "3.3.2"
+  },
+  "prettier": {
+    "printWidth": 120,
+    "singleQuote": true
   }
 }

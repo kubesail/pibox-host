@@ -5,47 +5,47 @@ import {
   saveConfig,
   execAsync,
   getSystemSerial,
-} from "@/functions";
+  execAndLog,
+} from '@/functions';
+import { stat } from 'fs/promises';
 
 export default async function handler(req, res) {
   const config = await getConfig();
   if (config) {
-    return res.status(400).json({ error: "Initial setup already completed" });
+    return res.status(400).json({ error: 'Initial setup already completed' });
   }
   return initialSetup(req, res);
 }
 
 async function initialSetup(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let { fullName, password, sessionKey, sessionName, sessionPlatform, disks } =
-    req.body;
+  // This blocks other / accidental setup requests until this one is complete
+  await saveConfig(JSON.stringify({ setupInProgress: true }));
+
+  let { fullName, password, sessionKey, sessionName, sessionPlatform, disks } = req.body;
 
   if (!fullName || !password) {
-    return res.status(400).json({ error: "Missing full name or password" });
+    return res.status(400).json({ error: 'Missing full name or password' });
   }
 
-  const firstName = fullName.split(" ")[0];
-  const username = firstName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const firstName = fullName.split(' ')[0];
+  const username = firstName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
   if (!sessionKey || !sessionName || !sessionPlatform) {
-    return res
-      .status(400)
-      .json({ error: "Missing session key, name, or platform" });
+    return res.status(400).json({ error: 'Missing session key, name, or platform' });
   }
 
   if (!disks || !Array.isArray(disks) || disks.length < 1) {
-    return res
-      .status(400)
-      .json({ error: "One or more disks are required to complete setup" });
+    return res.status(400).json({ error: 'One or more disks are required to complete setup' });
   }
 
   try {
     await execAsync(`deluser --remove-home pi`); // delete default pi user
   } catch (err) {
-    if (!err.stderr.includes("does not exist")) {
+    if (!err.stderr.includes('does not exist')) {
       throw err;
     }
   }
@@ -65,7 +65,7 @@ async function initialSetup(req, res) {
   // TODO configure disks in RAIDt
   // import & run createRAID1Array() from functions
 
-  const pluralName = firstName + (firstName.endsWith("s") ? "'" : "'s");
+  const pluralName = firstName + (firstName.endsWith('s') ? "'" : "'s");
   const serial = await getSystemSerial();
 
   const config = {
@@ -79,8 +79,54 @@ async function initialSetup(req, res) {
         platform: sessionPlatform,
       },
     ],
+    shares: [],
   };
 
   await saveConfig(config);
+
+  //  for each disk, disk.name should be a valid /dev/ path, like "sda", "sdb", etc.
+  disks = disks.map((disk) => ({ ...disk, path: `/dev/${disk.name}` }));
+  for (const disk of disks) {
+    if (!disk.name) {
+      return res.status(400).json({ error: 'Missing disk name' });
+    }
+    try {
+      await stat(disk.path);
+    } catch (err) {
+      return res.status(400).json({ error: `Disk ${disk.path} does not exist` });
+    }
+  }
+
+  try {
+    await prepareDrive1({ drivePath: disks[0].path });
+  } catch (err) {
+    return res.status(500).json({ error: `Error preparing drive 1: ${err}` });
+  }
+
+  try {
+    await prepareLVM({ drivePath: disks[0].path });
+  } catch (err) {
+    return res.status(500).json({ error: `Error preparing LVM: ${err}` });
+  }
+
+  try {
+    await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`);
+    await execAndLog('GLOBAL', `mkdir -p /pibox/files`);
+    global.LVM_MOUNTED = true;
+  } catch (err) {
+    errors.push(`Error mounting logical volume: ${err}`);
+  }
+
   res.status(200).json({ success: true });
+}
+
+async function prepareDrive1({ drivePath }) {
+  await execAndLog('DRIVE1', `pvcreate ${drivePath}`);
+  await execAndLog('DRIVE1', `vgcreate pibox_vg ${drivePath}`);
+}
+
+async function prepareLVM() {
+  await execAndLog('GLOBAL', `lvcreate -l 100%FREE -n pibox_lv pibox_vg`);
+  await execAndLog('GLOBAL', `mkfs.ext4 /dev/pibox_vg/pibox_lv`);
+  await execAndLog('GLOBAL', `mkdir -p /pibox`);
 }

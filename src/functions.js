@@ -1,35 +1,29 @@
-import { promisify } from "util";
-import { exec, spawn } from "child_process";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { CONFIG_FILE_PATH } from "@/constants";
+import { promisify } from 'util';
+import { exec, spawn } from 'child_process';
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { CONFIG_FILE_PATH } from '@/constants';
 
 export const execAsync = promisify(exec);
 
 export function bytesToHuman(sizeInBytes) {
-  if (sizeInBytes === 0) return "0 B";
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  if (sizeInBytes === 0) return '0 B';
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(sizeInBytes) / Math.log(1000));
-  return (sizeInBytes / Math.pow(1000, i)).toFixed(0) * 1 + " " + sizes[i];
+  return (sizeInBytes / Math.pow(1000, i)).toFixed(0) * 1 + ' ' + sizes[i];
 }
 
 export async function createUser(user, fullName) {
   user = user.toLowerCase();
 
   const beginWithRegex = /^[a-z]/i;
-  if (
-    typeof user !== "string" ||
-    user.length < 1 ||
-    !beginWithRegex.test(user)
-  ) {
-    throw new Error(
-      "Your full name must start with a standard character (A-Z)"
-    );
+  if (typeof user !== 'string' || user.length < 1 || !beginWithRegex.test(user)) {
+    throw new Error('Your full name must start with a standard character (A-Z)');
   }
 
   // check that user is a valid unix username
   if (!user.match(/^[a-z0-9_-]{1,30}$/)) {
     throw new Error(
-      "Invalid username. Usernames must be less than 30 characters and consist of only alphanumeric characters, dashes, or underscores"
+      'Invalid username. Usernames must be less than 30 characters and consist of only alphanumeric characters, dashes, or underscores'
     );
   }
 
@@ -37,20 +31,20 @@ export async function createUser(user, fullName) {
   let users;
   try {
     users = await execAsync("grep -E '/bin/bash' /etc/passwd");
-    users = users.stdout.split("\n").map((user) => {
-      const [username] = user.split(":");
+    users = users.stdout.split('\n').map((user) => {
+      const [username] = user.split(':');
       return username;
     });
   } catch (err) {
     console.error(`Error listing users: ${err}`);
-    throw new Error("Error listing users");
+    throw new Error('Error listing users');
   }
 
   if (users.find((u) => u === user)) {
     throw new Error(`User already exists (${user})`);
   } else {
     // : is an invalid full name character because it is an /etc/passwd delimiter
-    fullName = fullName.replace(/:/g, "");
+    fullName = fullName.replace(/:/g, '');
     // use strong bash quotes (') to escape the full name, and
     // sanitize fullName to escape any single quotes
     fullName = fullName.replace(/'/g, `'\\''`);
@@ -70,7 +64,7 @@ export async function middlewareAuth(req, res) {
   //   ],
   // };
 
-  const [_scheme, deviceKey] = (req.headers?.authorization || "").split(" ");
+  const [_scheme, deviceKey] = (req.headers?.authorization || '').split(' ');
   if (!deviceKey) {
     res.status(401).json({
       error:
@@ -81,13 +75,13 @@ export async function middlewareAuth(req, res) {
 
   let config;
   try {
-    const configFile = await readFile("/root/.pibox/config.json", "utf8");
+    const configFile = await readFile('/root/.pibox/config.json', 'utf8');
     config = JSON.parse(configFile);
   } catch (err) {
-    if (err.code === "ENOENT") {
-      console.log("Config file not found. Please run initial setup first.");
+    if (err.code === 'ENOENT') {
+      console.log('Config file not found. Please run initial setup first.');
     } else {
-      console.log("Error reading config file", err);
+      console.log('Error reading config file', err);
     }
     return false;
   }
@@ -95,7 +89,7 @@ export async function middlewareAuth(req, res) {
   const sessions = config.sessions.find((session) => session.key === deviceKey);
   if (!sessions) {
     res.status(401).json({
-      error: "Unauthorized",
+      error: 'Unauthorized',
     });
     return false;
   }
@@ -104,7 +98,7 @@ export async function middlewareAuth(req, res) {
   req.deviceName = sessions.name;
   req.devicePlatform = sessions.platform;
   req.isOwner = config.owner === sessions.user;
-  console.log("Authorized request from", req.user, req.url, sessions.name);
+  console.log(`Authorized ${req.method} ${req.url} from ${req.user} [${sessions.name}]`);
   return true;
 }
 
@@ -125,10 +119,26 @@ function createRAID1Array() {
   // console.log('RAID 1 (mirror) array created successfully!');
 }
 
+export async function execAndLog(label, cmd, { bypassError = false } = {}) {
+  if (!label || !cmd) {
+    throw new Error('Missing label or command');
+  }
+  console.log(`[${label}] ${bypassError} running ${cmd}`);
+  if (bypassError) {
+    try {
+      await execAsync(cmd);
+    } catch (err) {
+      console.log('Bypassed error:', err);
+    }
+    return null;
+  }
+  return execAsync(cmd);
+}
+
 export async function getConfig() {
   let config;
   try {
-    config = JSON.parse(await readFile(CONFIG_FILE_PATH, "utf8"));
+    config = JSON.parse(await readFile(CONFIG_FILE_PATH, 'utf8'));
   } catch (err) {
     config = null;
   }
@@ -136,18 +146,18 @@ export async function getConfig() {
 }
 
 export async function saveConfig(config) {
-  mkdir("/root/.pibox", { recursive: true });
+  mkdir('/root/.pibox', { recursive: true });
   await writeFile(CONFIG_FILE_PATH, JSON.stringify(config));
 }
 
 export async function checkSystemPassword(password, hashedPassword) {
   return new Promise((resolve, reject) => {
-    let stderr = "";
-    let stdout = "";
-    const subprocess = spawn("/bin/mkpasswd", [password, hashedPassword]);
-    subprocess.stdout.on("data", (data) => (stdout += data));
-    subprocess.stderr.on("data", (data) => (stderr += data));
-    subprocess.on("close", (exitCode) => {
+    let stderr = '';
+    let stdout = '';
+    const subprocess = spawn('/bin/mkpasswd', [password, hashedPassword]);
+    subprocess.stdout.on('data', (data) => (stdout += data));
+    subprocess.stderr.on('data', (data) => (stderr += data));
+    subprocess.on('close', (exitCode) => {
       if (exitCode !== 0) {
         // mkpassword exits with code 2 if a full hashed password is provided the password is incorrect
         return resolve(false);
@@ -159,28 +169,28 @@ export async function checkSystemPassword(password, hashedPassword) {
 
 export async function setSystemPassword(username, password) {
   return new Promise((resolve, reject) => {
-    let stderr = "";
-    let stdout = "";
-    const subprocess = spawn("/bin/mkpasswd", [password]);
-    subprocess.stdout.on("data", (data) => (stdout += data));
-    subprocess.stderr.on("data", (data) => (stderr += data));
-    subprocess.on("close", async (exitCode) => {
+    let stderr = '';
+    let stdout = '';
+    const subprocess = spawn('/bin/mkpasswd', [password]);
+    subprocess.stdout.on('data', (data) => (stdout += data));
+    subprocess.stderr.on('data', (data) => (stderr += data));
+    subprocess.on('close', async (exitCode) => {
       if (exitCode !== 0) {
         console.error(`Error setting password: ${stderr}`);
-        return reject(new Error("Error setting password"));
+        return reject(new Error('Error setting password'));
       }
       const hash = stdout.trim();
-      let etcShadow = await readFile("/etc/shadow", "utf8");
+      let etcShadow = await readFile('/etc/shadow', 'utf8');
       etcShadow = etcShadow
-        .split("\n")
+        .split('\n')
         .map((line) => {
-          const parts = line.split(":");
+          const parts = line.split(':');
           if (username !== parts[0]) return line;
           parts[1] = hash;
-          return parts.join(":");
+          return parts.join(':');
         })
-        .join("\n");
-      await writeFile("/etc/shadow", etcShadow);
+        .join('\n');
+      await writeFile('/etc/shadow', etcShadow);
       resolve();
     });
   });
@@ -189,9 +199,9 @@ export async function setSystemPassword(username, password) {
 export async function getSystemSerial() {
   let serial = null;
   try {
-    const { stdout, stderr } = await execAsync("ip link show eth0");
+    const { stdout, stderr } = await execAsync('ip link show eth0');
     const macAddressRegex = /ether\s+([^\s]+)/;
-    serial = stdout.match(macAddressRegex)[1]?.replace(/:/g, "");
+    serial = stdout.match(macAddressRegex)[1]?.replace(/:/g, '');
   } catch (err) {
     console.error(`Error retrieving serial (eth0 mac): ${err}`);
   }

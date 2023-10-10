@@ -57,5 +57,7 @@ export default async function handler(req, res) {
     await saveConfig(config);
   }
 
+  // TODO if owner, then use pass password to sedutil to unlock both drives and mount them
+
   res.status(200).json({ message: "Login successful" });
 }
