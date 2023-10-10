@@ -13,8 +13,7 @@ PIBOX_HOST_VERSION=v$(cat package.json | jq -r .version)
 # Is version newer than latest release?
 LATEST_PUBLISHED_VERSION=$(gh release list | head -n 1 | awk '{print $1}')
 
-echo "Latest published version is $LATEST_PUBLISHED_VERSION"
-echo "Building version $PIBOX_HOST_VERSION"
+echo "Building $LATEST_PUBLISHED_VERSION => $PIBOX_HOST_VERSION"
 if [[ "$PIBOX_HOST_VERSION" == "$LATEST_PUBLISHED_VERSION" ]]; then
   echo "Version $PIBOX_HOST_VERSION is already published. Please update package.json and try again."
   exit 1

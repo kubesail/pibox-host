@@ -148,6 +148,7 @@ async function getFileOrDirListing({ req, res, path, piboxConfig, slug }) {
     'X-Pibox-Disk-Total': diskTotal,
     'X-Pibox-Disk-Percent': diskPercent,
   };
+  headers['X-Pibox-Access'] = '';
   if (req.isOwner) {
     const users = piboxConfig.shares.find((share) => slug.startsWith(share.path))?.users;
     if (users?.length) {
