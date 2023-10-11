@@ -19,4 +19,5 @@ sudo sed -i 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD: ALL/' /et
 # Create root files directory (and mount it)
 mkdir /files
 echo " libata.allow_tpm=1" > /boot/cmdline.txt
+groupadd sambagroup
 ```
