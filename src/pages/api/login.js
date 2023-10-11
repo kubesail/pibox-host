@@ -1,63 +1,83 @@
-import { readFile } from "fs/promises";
-import { getConfig, saveConfig, checkSystemPassword } from "@/functions";
+import { readFile } from 'fs/promises';
+import { getConfig, saveConfig, checkSystemPassword } from '@/functions';
+
+const OTP_EXPIRY_WINDOW = 1000 * 60 * 10; // 10 minutes
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let { user, password, sessionKey, sessionName, sessionPlatform } = req.body;
+  let { user, password, oneTimePassword, sessionKey, sessionName, sessionPlatform } = req.body;
+
+  if (oneTimePassword) {
+    const config = await getConfig();
+
+    // filter out expired one-time passwords, and save back to config object
+    config.oneTimePasswords = config.oneTimePasswords.filter((otp) => {
+      if (new Date(otp.date).valueOf() + OTP_EXPIRY_WINDOW > Date.now()) {
+        return true;
+      }
+      // if
+    });
+
+    const otp = config.oneTimePasswords.find((otp) => otp.oneTimePassword === oneTimePassword);
+    if (!otp) {
+      return res.status(400).json({ error: 'Invalid one-time password' });
+    }
+    config.oneTimePasswords = config.oneTimePasswords.filter((otp) => otp.oneTimePassword !== oneTimePassword);
+    user = otp.user;
+    await pushSession({ config, sessionKey, sessionName, sessionPlatform, user });
+    return res.status(200).json({ message: 'Login successful' });
+  }
 
   if (!user || !password) {
-    return res.status(400).json({ error: "Missing username or password" });
+    return res.status(400).json({ error: 'Must send a oneTimePassword or a user / password combination' });
   }
 
   // read /etc/shadow
   let etcShadowUser;
   try {
-    const etcShadow = await readFile("/etc/shadow", "utf8");
+    const etcShadow = await readFile('/etc/shadow', 'utf8');
     etcShadowUser = etcShadow
-      .split("\n")
+      .split('\n')
       .map((user) => {
-        const [username, passwordHash] = user.split(":");
+        const [username, passwordHash] = user.split(':');
         return { username, passwordHash };
       })
       .find((userObj) => userObj.username === user);
   } catch (err) {
     console.error(`Error getting users: ${err}`);
-    return res.status(500).json({ error: "Error getting users" });
+    return res.status(500).json({ error: 'Error getting users' });
   }
 
   if (!etcShadowUser) {
-    return res.status(400).json({ error: "User not found" });
+    return res.status(400).json({ error: 'User not found' });
   }
 
-  const validLogin = await checkSystemPassword(
-    password,
-    etcShadowUser.passwordHash
-  );
+  const validLogin = await checkSystemPassword(password, etcShadowUser.passwordHash);
 
   if (!validLogin) {
-    return res.status(401).json({ error: "Incorrect password" });
+    return res.status(401).json({ error: 'Incorrect password' });
   }
 
   const config = await getConfig();
-  if (
-    sessionKey &&
-    sessionName &&
-    sessionPlatform &&
-    !config.sessions.find((session) => session.key === sessionKey)
-  ) {
+  await pushSession({ config, sessionKey, sessionName, sessionPlatform, user });
+
+  // TODO if owner, then use pass password to sedutil to unlock both drives and mount them
+
+  res.status(200).json({ message: 'Login successful' });
+}
+
+async function pushSession({ config, sessionKey, sessionName, sessionPlatform, user }) {
+  const existingSession = config.sessions.find((session) => session.key === sessionKey);
+  if (!existingSession) {
     config.sessions.push({
       user: user,
       key: sessionKey,
       name: sessionName,
       platform: sessionPlatform,
     });
-    await saveConfig(config);
   }
-
-  // TODO if owner, then use pass password to sedutil to unlock both drives and mount them
-
-  res.status(200).json({ message: "Login successful" });
+  await saveConfig(config);
 }
