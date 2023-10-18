@@ -26,6 +26,7 @@ function sanitizeLsblk(devices) {
       totalCapacity.push(device.size)
       return {
         ...device,
+        hasData: device.children?.some((child) => child.name === 'pibox_vg-pibox_lv'),
         size: bytesToHuman(device.size),
         children: undefined,
       }
@@ -53,6 +54,7 @@ async function getSmartData(device) {
     const smartData = {
       name: device.name,
       size: device.size,
+      hasData: device.hasData,
       serial: data.serial_number,
       model: MODELS.find((model) => model.regex.test(data.model_name))?.name || data.model_name,
       vendor: VENDORS[vendor] || vendor,

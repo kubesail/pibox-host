@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  let { user, password, oneTimePassword, sessionKey, sessionName, sessionPlatform } = req.body
+  let { ownerLogin = false, user, password, oneTimePassword, sessionKey, sessionName, sessionPlatform } = req.body
 
   if (oneTimePassword) {
     const config = await getConfig()
@@ -18,7 +18,6 @@ export default async function handler(req, res) {
       if (new Date(otp.date).valueOf() + OTP_EXPIRY_WINDOW > Date.now()) {
         return true
       }
-      // if
     })
 
     const otp = config.oneTimePasswords.find((otp) => otp.oneTimePassword === oneTimePassword)
@@ -29,6 +28,11 @@ export default async function handler(req, res) {
     user = otp.user
     await pushSession({ config, sessionKey, sessionName, sessionPlatform, user })
     return res.status(200).json({ message: 'Login successful' })
+  }
+
+  if (ownerLogin) {
+    const config = await getConfig()
+    user = config.owner
   }
 
   if (!user || !password) {

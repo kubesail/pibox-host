@@ -8,6 +8,7 @@ import { PIBOX_FILES_PREFIX } from '@/constants'
 
 function checkAccess(piboxConfig, user, slug) {
   // TODO check this, (e.g. /files/vac might also match /files/vacation)
+  // TODO the request needs to be remapped to correct share location if user is a collaborator
   piboxConfig.shares.forEach((share) => {
     if (slug.startsWith(share.path) && share.users.includes(user)) {
       return true
@@ -44,7 +45,9 @@ export default async function handler(req, res) {
     return await getFileOrDirListing({ req, res, path: filePath, piboxConfig, slug })
   } else if (req.method === 'POST') {
     const body = await getRawBody(req)
-    const { newPath } = JSON.parse(body)
+    let { newPath } = JSON.parse(body)
+    newPath = newPath.replace(/^\/files/, '')
+    newPath = `${PIBOX_FILES_PREFIX}${newPath}`
     // TODO update sharing permissions if newPath is a folder
     return await renameFile({ res, oldPath: filePath, newPath })
   } else if (req.method === 'DELETE') {
@@ -150,6 +153,7 @@ async function getFileOrDirListing({ req, res, path, piboxConfig, slug }) {
   }
   headers['X-Pibox-Access'] = ''
   if (req.isOwner) {
+    slug = slug.endsWith('/') ? slug : slug + '/'
     const users = piboxConfig.shares.find((share) => slug.startsWith(share.path))?.users
     if (users?.length) {
       headers['X-Pibox-Access'] = users.join(',')
