@@ -1,54 +1,54 @@
-import { promisify } from 'util';
-import { exec, spawn } from 'child_process';
-import { readFile, writeFile, mkdir } from 'fs/promises';
-import { CONFIG_FILE_PATH } from '@/constants';
+import { promisify } from 'util'
+import { exec, spawn } from 'child_process'
+import { readFile, writeFile, mkdir } from 'fs/promises'
+import { CONFIG_FILE_PATH } from '@/constants'
 
-export const execAsync = promisify(exec);
+export const execAsync = promisify(exec)
 
 export function bytesToHuman(sizeInBytes) {
-  if (sizeInBytes === 0) return '0 B';
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(sizeInBytes) / Math.log(1000));
-  return (sizeInBytes / Math.pow(1000, i)).toFixed(0) * 1 + ' ' + sizes[i];
+  if (sizeInBytes === 0) return '0 B'
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(sizeInBytes) / Math.log(1000))
+  return (sizeInBytes / Math.pow(1000, i)).toFixed(0) * 1 + ' ' + sizes[i]
 }
 
 export async function createUser(user, fullName) {
-  user = user.toLowerCase();
+  user = user.toLowerCase()
 
-  const beginWithRegex = /^[a-z]/i;
+  const beginWithRegex = /^[a-z]/i
   if (typeof user !== 'string' || user.length < 1 || !beginWithRegex.test(user)) {
-    throw new Error('Your full name must start with a standard character (A-Z)');
+    throw new Error('Your full name must start with a standard character (A-Z)')
   }
 
   // check that user is a valid unix username
   if (!user.match(/^[a-z0-9_-]{1,30}$/)) {
     throw new Error(
       'Invalid username. Usernames must be less than 30 characters and consist of only alphanumeric characters, dashes, or underscores'
-    );
+    )
   }
 
   // check that the new user doesn't already exist
-  let users;
+  let users
   try {
-    users = await execAsync("grep -E '/bin/bash' /etc/passwd");
+    users = await execAsync("grep -E '/bin/bash' /etc/passwd")
     users = users.stdout.split('\n').map((user) => {
-      const [username] = user.split(':');
-      return username;
-    });
+      const [username] = user.split(':')
+      return username
+    })
   } catch (err) {
-    console.error(`Error listing users: ${err}`);
-    throw new Error('Error listing users');
+    console.error(`Error listing users: ${err}`)
+    throw new Error('Error listing users')
   }
 
   if (users.find((u) => u === user)) {
-    throw new Error(`User already exists (${user})`);
+    throw new Error(`User already exists (${user})`)
   } else {
     // : is an invalid full name character because it is an /etc/passwd delimiter
-    fullName = fullName.replace(/:/g, '');
+    fullName = fullName.replace(/:/g, '')
     // use strong bash quotes (') to escape the full name, and
     // sanitize fullName to escape any single quotes
-    fullName = fullName.replace(/'/g, `'\\''`);
-    execAsync(`useradd -m -s /bin/bash ${user} --comment '${fullName}'`);
+    fullName = fullName.replace(/'/g, `'\\''`)
+    execAsync(`useradd -m -s /bin/bash ${user} --comment '${fullName}'`)
   }
 }
 
@@ -64,42 +64,42 @@ export async function middlewareAuth(req, res) {
   //   ],
   // };
 
-  const [_scheme, deviceKey] = (req.headers?.authorization || '').split(' ');
+  const [_scheme, deviceKey] = (req.headers?.authorization || '').split(' ')
   if (!deviceKey) {
     res.status(401).json({
       error:
         "Restricted route. Please include a device key in your authorization header. Example format: 'Authorization: bearer XXXXX'",
-    });
-    return false;
+    })
+    return false
   }
 
-  let config;
+  let config
   try {
-    const configFile = await readFile('/root/.pibox/config.json', 'utf8');
-    config = JSON.parse(configFile);
+    const configFile = await readFile('/root/.pibox/config.json', 'utf8')
+    config = JSON.parse(configFile)
   } catch (err) {
     if (err.code === 'ENOENT') {
-      console.log('Config file not found. Please run initial setup first.');
+      console.log('Config file not found. Please run initial setup first.')
     } else {
-      console.log('Error reading config file', err);
+      console.log('Error reading config file', err)
     }
-    return false;
+    return false
   }
 
-  const sessions = config.sessions.find((session) => session.key === deviceKey);
+  const sessions = config.sessions.find((session) => session.key === deviceKey)
   if (!sessions) {
     res.status(401).json({
       error: 'Unauthorized',
-    });
-    return false;
+    })
+    return false
   }
-  req.user = sessions.user;
-  req.deviceKey = sessions.key;
-  req.deviceName = sessions.name;
-  req.devicePlatform = sessions.platform;
-  req.isOwner = config.owner === sessions.user;
-  console.log(`Authorized ${req.method} ${req.url} from ${req.user} [${sessions.name}]`);
-  return true;
+  req.user = sessions.user
+  req.deviceKey = sessions.key
+  req.deviceName = sessions.name
+  req.devicePlatform = sessions.platform
+  req.isOwner = config.owner === sessions.user
+  console.log(`Authorized ${req.method} ${req.url} from ${req.user} [${sessions.name}]`)
+  return true
 }
 
 function createRAID1Array() {
@@ -121,89 +121,89 @@ function createRAID1Array() {
 
 export async function execAndLog(label, cmd, { bypassError = false } = {}) {
   if (!label || !cmd) {
-    throw new Error('Missing label or command');
+    throw new Error('Missing label or command')
   }
-  console.log(`[${label}] ${bypassError} running ${cmd}`);
+  console.log(`[${label}] ${bypassError} running ${cmd}`)
   if (bypassError) {
     try {
-      await execAsync(cmd);
+      await execAsync(cmd)
     } catch (err) {
-      console.log('Bypassed error:', err);
+      console.log('Bypassed error:', err)
     }
-    return null;
+    return null
   }
-  return execAsync(cmd);
+  return execAsync(cmd)
 }
 
 export async function getConfig() {
-  let config;
+  let config
   try {
-    config = JSON.parse(await readFile(CONFIG_FILE_PATH, 'utf8'));
+    config = JSON.parse(await readFile(CONFIG_FILE_PATH, 'utf8'))
   } catch (err) {
-    config = null;
+    config = null
   }
-  return config;
+  return config
 }
 
 export async function saveConfig(config) {
-  mkdir('/root/.pibox', { recursive: true });
-  await writeFile(CONFIG_FILE_PATH, JSON.stringify(config));
+  mkdir('/root/.pibox', { recursive: true })
+  await writeFile(CONFIG_FILE_PATH, JSON.stringify(config))
 }
 
 export async function checkSystemPassword(password, hashedPassword) {
   return new Promise((resolve, reject) => {
-    let stderr = '';
-    let stdout = '';
-    const subprocess = spawn('/bin/mkpasswd', [password, hashedPassword]);
-    subprocess.stdout.on('data', (data) => (stdout += data));
-    subprocess.stderr.on('data', (data) => (stderr += data));
+    let stderr = ''
+    let stdout = ''
+    const subprocess = spawn('/bin/mkpasswd', [password, hashedPassword])
+    subprocess.stdout.on('data', (data) => (stdout += data))
+    subprocess.stderr.on('data', (data) => (stderr += data))
     subprocess.on('close', (exitCode) => {
       if (exitCode !== 0) {
         // mkpassword exits with code 2 if a full hashed password is provided the password is incorrect
-        return resolve(false);
+        return resolve(false)
       }
-      resolve(stdout.trim() === hashedPassword);
-    });
-  });
+      resolve(stdout.trim() === hashedPassword)
+    })
+  })
 }
 
 export async function setSystemPassword(username, password) {
   return new Promise((resolve, reject) => {
-    let stderr = '';
-    let stdout = '';
-    const subprocess = spawn('/bin/mkpasswd', [password]);
-    subprocess.stdout.on('data', (data) => (stdout += data));
-    subprocess.stderr.on('data', (data) => (stderr += data));
+    let stderr = ''
+    let stdout = ''
+    const subprocess = spawn('/bin/mkpasswd', [password])
+    subprocess.stdout.on('data', (data) => (stdout += data))
+    subprocess.stderr.on('data', (data) => (stderr += data))
     subprocess.on('close', async (exitCode) => {
       if (exitCode !== 0) {
-        console.error(`Error setting password: ${stderr}`);
-        return reject(new Error('Error setting password'));
+        console.error(`Error setting password: ${stderr}`)
+        return reject(new Error('Error setting password'))
       }
-      const hash = stdout.trim();
-      let etcShadow = await readFile('/etc/shadow', 'utf8');
+      const hash = stdout.trim()
+      let etcShadow = await readFile('/etc/shadow', 'utf8')
       etcShadow = etcShadow
         .split('\n')
         .map((line) => {
-          const parts = line.split(':');
-          if (username !== parts[0]) return line;
-          parts[1] = hash;
-          return parts.join(':');
+          const parts = line.split(':')
+          if (username !== parts[0]) return line
+          parts[1] = hash
+          return parts.join(':')
         })
-        .join('\n');
-      await writeFile('/etc/shadow', etcShadow);
-      resolve();
-    });
-  });
+        .join('\n')
+      await writeFile('/etc/shadow', etcShadow)
+      resolve()
+    })
+  })
 }
 
 export async function getSystemSerial() {
-  let serial = null;
+  let serial = null
   try {
-    const { stdout, stderr } = await execAsync('ip link show eth0');
-    const macAddressRegex = /ether\s+([^\s]+)/;
-    serial = stdout.match(macAddressRegex)[1]?.replace(/:/g, '');
+    const { stdout, stderr } = await execAsync('ip link show eth0')
+    const macAddressRegex = /ether\s+([^\s]+)/
+    serial = stdout.match(macAddressRegex)[1]?.replace(/:/g, '')
   } catch (err) {
-    console.error(`Error retrieving serial (eth0 mac): ${err}`);
+    console.error(`Error retrieving serial (eth0 mac): ${err}`)
   }
-  return serial;
+  return serial
 }

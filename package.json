@@ -1,6 +1,6 @@
 {
   "name": "pibox-host",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "private": true,
   "bin": "server.js",
   "scripts": {
@@ -25,6 +25,7 @@
   },
   "prettier": {
     "printWidth": 120,
-    "singleQuote": true
+    "singleQuote": true,
+    "semi": false
   }
 }
