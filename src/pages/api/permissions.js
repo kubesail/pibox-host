@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing path' })
   }
 
-  if (!Array.isArray(users) || users.length < 1) {
+  if (!Array.isArray(users)) {
     return res.status(400).json({ error: 'Missing users' })
   }
 
