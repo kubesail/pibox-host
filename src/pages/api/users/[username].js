@@ -11,11 +11,10 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  if (req.isOwner !== true) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
   if (req.method === 'DELETE') {
+    if (req.isOwner !== true) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
     const username = req.query.username
     if (username === req.user) {
       return res.status(400).json({ error: 'Cannot delete yourself' })
@@ -30,6 +29,9 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ message: 'User deleted' })
   } else if (req.method === 'PUT') {
+    if (req.isOwner !== true && req.user !== req.query.username) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
     if (!req.body.password) {
       return res.status(400).json({ error: 'Missing password' })
     }
