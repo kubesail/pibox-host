@@ -8,6 +8,7 @@ export default async function handler(req, res) {
     const data = JSON.parse(stdout)
     let { totalCapacity, totalCapacityMirrored, disks } = sanitizeLsblk(data.blockdevices)
     disks = await Promise.all(disks.map((device) => getSmartData(device)))
+    // disks = await Promise.all(disks.map((device) => getLuksData(device)))
     res.status(200).json({ totalCapacity, totalCapacityMirrored, disks })
   } catch (err) {
     res.status(500).json({ error: 'Disk error' })
@@ -50,7 +51,6 @@ async function getSmartData(device) {
     if (!vendor) {
       vendor = data.model_name.split(' ')[0]
     }
-    console.log('smartdata', /CT\d+BX500SSD1/i.test(data.model_name))
     const smartData = {
       name: device.name,
       size: device.size,

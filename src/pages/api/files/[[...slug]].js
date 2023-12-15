@@ -6,15 +6,41 @@ import getRawBody from 'raw-body'
 import sharp from 'sharp'
 import { PIBOX_FILES_PREFIX } from '@/constants'
 
-function checkAccess(piboxConfig, user, slug) {
-  // TODO check this, (e.g. /files/vac might also match /files/vacation)
-  // TODO the request needs to be remapped to correct share location if user is a collaborator
-  piboxConfig.shares.forEach((share) => {
-    if (slug.startsWith(share.path) && share.users.includes(user)) {
-      return true
+function checkCollaboratorAccess(piboxConfig, user, slug) {
+  const share = piboxConfig.shares.find((share) => slug[0] === share.name)
+  if (!share || !share.users.includes(user)) return false
+  return true
+}
+
+function collaboratorSlugToRealSlug(piboxConfig, slug) {
+  for (const share of piboxConfig.shares) {
+    if (share.name === slug[0]) return share.path + slug.slice(1).join('/')
+  }
+  throw new Error('Collaborator slug not found')
+}
+
+async function getCollaboratorSharesIndex(req, res, piboxConfig, user) {
+  let shares = piboxConfig.shares.filter((share) => share.users.includes(user))
+  shares = shares.map(async (share) => {
+    try {
+      const path = PIBOX_FILES_PREFIX + share.path
+      const stats = await stat(path)
+      return {
+        name: share.name,
+        dir: true,
+        mtime: stats.mtime,
+        ctime: stats.ctime,
+      }
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        return null
+      }
+      throw err
     }
   })
-  return false
+  shares = await Promise.all(shares)
+  shares = shares.filter(Boolean)
+  return res.status(200).json(shares)
 }
 
 export default async function handler(req, res) {
@@ -24,21 +50,30 @@ export default async function handler(req, res) {
 
   const piboxConfig = await getConfig()
 
-  if (!req.isOwner && !checkAccess(piboxConfig, req.user, req.query.slug)) {
-    return res.status(403).json({ error: 'Forbidden' })
+  let slug
+  if (req.isOwner) {
+    slug = req.query.slug ? req.query.slug.join('/') : ''
+  } else {
+    if (!req.query.slug || req.query.slug.length < 1) {
+      return getCollaboratorSharesIndex(req, res, piboxConfig, req.user)
+    }
+    const hasAccess = checkCollaboratorAccess(piboxConfig, req.user, req.query.slug)
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+    slug = collaboratorSlugToRealSlug(piboxConfig, req.query.slug)
   }
 
-  const slug = req.query.slug ? req.query.slug.join('/') : ''
   const filePath = `${PIBOX_FILES_PREFIX}${slug}`
 
   // basic CRUD operations
   if (req.method === 'PUT') {
     const contentLength = req.headers['content-length']
     if (contentLength === '0') {
-      console.log('Creating folder')
+      // console.log('Creating folder')
       return await createFolder({ res, path: filePath })
     } else {
-      console.log('Uploading file')
+      // console.log('Uploading file')
       return await uploadFile({ req, res, filePath })
     }
   } else if (req.method === 'GET') {
@@ -80,7 +115,7 @@ async function getFileOrDirListing({ req, res, path, piboxConfig, slug }) {
   const isDirectory = stats.isDirectory()
 
   if (!isDirectory) {
-    console.log('not a directory')
+    // console.log('not a directory')
     let width = parseInt(req.headers['x-pibox-width'], 10)
     let height = parseInt(req.headers['x-pibox-height'], 10)
     const mimeType = await fileTypeFromFile(path)
@@ -97,7 +132,6 @@ async function getFileOrDirListing({ req, res, path, piboxConfig, slug }) {
           fit: sharp.fit.cover,
           position: sharp.strategy.entropy,
         })
-        console.log({ width, height })
         readableStream.pipe(transformer).pipe(res)
         res.writeHead(200, headers)
       } catch (err) {
@@ -185,7 +219,7 @@ function uploadFile({ req, res, filePath }) {
       return reject(res.status(500).json({ error: err.message }))
     })
     req.on('end', () => {
-      console.log('File uploaded')
+      // console.log('File uploaded')
       resolve(res.status(200).json({ message: 'File uploaded' }))
     })
   })

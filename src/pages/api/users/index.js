@@ -83,7 +83,6 @@ async function listUsers(req, res) {
       return 0
     })
     .map((user, index) => {
-      console.log(index)
       return {
         fullName: user.fullName,
         username: user.username,

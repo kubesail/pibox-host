@@ -2,6 +2,7 @@ import { promisify } from 'util'
 import { exec, spawn } from 'child_process'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { CONFIG_FILE_PATH } from '@/constants'
+import { createHash } from 'crypto'
 
 export const execAsync = promisify(exec)
 
@@ -73,18 +74,7 @@ export async function middlewareAuth(req, res) {
     return false
   }
 
-  let config
-  try {
-    const configFile = await readFile('/root/.pibox/config.json', 'utf8')
-    config = JSON.parse(configFile)
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.log('Config file not found. Please run initial setup first.')
-    } else {
-      console.log('Error reading config file', err)
-    }
-    return false
-  }
+  const config = await getConfig()
 
   const sessions = config.sessions.find((session) => session.key === deviceKey)
   if (!sessions) {
@@ -140,6 +130,7 @@ export async function getConfig() {
   try {
     config = JSON.parse(await readFile(CONFIG_FILE_PATH, 'utf8'))
   } catch (err) {
+    console.error(`Error reading config file: ${err}`)
     config = null
   }
   return config
@@ -206,4 +197,9 @@ export async function getSystemSerial() {
     console.error(`Error retrieving serial (eth0 mac): ${err}`)
   }
   return serial
+}
+
+export function sanitizeForLuks(password) {
+  // hash the password and get a hex digest to prevent shell injection
+  return createHash('sha256').update(password).digest('hex')
 }

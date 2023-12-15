@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises'
-import { getConfig, saveConfig, checkSystemPassword } from '@/functions'
+import { getConfig, saveConfig, checkSystemPassword, execAsync, sanitizeForLuks, execAndLog } from '@/functions'
 
 const OTP_EXPIRY_WINDOW = 1000 * 60 * 10 // 10 minutes
 
@@ -9,6 +9,15 @@ export default async function handler(req, res) {
   }
 
   let { ownerLogin = false, user, password, oneTimePassword, sessionKey, sessionName, sessionPlatform } = req.body
+
+  if (ownerLogin && !global.DISKS_UNLOCKED) {
+    const drivePassword = sanitizeForLuks(password)
+    await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sda encrypted_sda`)
+    await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sdb encrypted_sdb`)
+    await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
+    global.DISKS_UNLOCKED = true
+    global.LVM_MOUNTED = true
+  }
 
   if (oneTimePassword) {
     const config = await getConfig()

@@ -55,10 +55,11 @@ async function resetDrives() {
   await execAndLog('GLOBAL', `vgremove pibox_vg -y`, { bypassError: true })
   await execAndLog('DRIVE1', `pvremove /dev/sda -y`, { bypassError: true })
   await execAndLog('DRIVE2', `pvremove /dev/sdb -y`, { bypassError: true })
+  await execAndLog('DRIVE1', `echo "YES" | cryptsetup erase /dev/sda`, { bypassError: true })
+  await execAndLog('DRIVE2', `echo "YES" | cryptsetup erase /dev/sdb`, { bypassError: true })
   await execAndLog('DRIVE1', `sudo dd if=/dev/zero of=/dev/sda bs=1M count=10`, { bypassError: true })
   await execAndLog('DRIVE2', `sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10`, { bypassError: true })
-
-  // TODO use sedutil to reset lock key
+  await unlink('/etc/pibox-host/initial-setup-complete')
 }
 
 /*
@@ -68,14 +69,21 @@ async function resetDrives() {
   USER=dan
   deluser --remove-home ${USER}
   # -----
+  echo "YES" | cryptsetup luksClose /dev/encrypted_sda
   umount /pibox
+
+  # You can skip these lines as the full disk will be erased via "cryptsetup erase" below
   lvdisplay | grep "LV Path" | awk '{print $3}' | xargs -I {} lvchange -an {}
   vgchange -an
   lvremove /dev/pibox_vg/pibox_lv -y
   vgremove pibox_vg -y
   pvremove /dev/sda -y
   pvremove /dev/sdb -y
+  
+  echo "YES" | cryptsetup erase /dev/sda
+  echo "YES" | cryptsetup erase /dev/sdb
   sudo dd if=/dev/zero of=/dev/sda bs=1M count=10
   sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10
 
+  rm /etc/pibox-host/initial-setup-complete
 */
