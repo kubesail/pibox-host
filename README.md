@@ -20,4 +20,7 @@ sudo sed -i 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD: ALL/' /et
 mkdir /files
 echo " libata.allow_tpm=1" > /boot/cmdline.txt
 groupadd sambagroup
+
+# for canvas NPM package (https://github.com/Automattic/node-canvas)
+sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
 ```
