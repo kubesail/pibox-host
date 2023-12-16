@@ -1,5 +1,6 @@
 import { readFile } from 'fs/promises'
 import { getConfig, saveConfig, checkSystemPassword, execAsync, sanitizeForLuks, execAndLog } from '@/functions'
+import c from 'chalk'
 
 const OTP_EXPIRY_WINDOW = 1000 * 60 * 10 // 10 minutes
 
@@ -9,15 +10,6 @@ export default async function handler(req, res) {
   }
 
   let { ownerLogin = false, user, password, oneTimePassword, sessionKey, sessionName, sessionPlatform } = req.body
-
-  if (ownerLogin && !global.DISKS_UNLOCKED) {
-    const drivePassword = sanitizeForLuks(password)
-    await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sda encrypted_sda`)
-    await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sdb encrypted_sdb`)
-    await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
-    global.DISKS_UNLOCKED = true
-    global.LVM_MOUNTED = true
-  }
 
   if (oneTimePassword) {
     const config = await getConfig()
@@ -78,6 +70,22 @@ export default async function handler(req, res) {
   await pushSession({ config, sessionKey, sessionName, sessionPlatform, user })
 
   // TODO if owner, then use pass password to sedutil to unlock both drives and mount them
+
+  if (ownerLogin && !global.ALL_DISKS_UNLOCKED) {
+    const drivePassword = sanitizeForLuks(password)
+    try {
+      await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sda encrypted_sda`)
+    } catch (err) {
+      console.log(c.red(`Error unlocking /dev/sda: ${err.stderr}`))
+    }
+    try {
+      await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sdb encrypted_sdb`)
+    } catch (err) {
+      console.log(c.red(`Error unlocking /dev/sdb: ${err.stderr}`))
+    }
+    await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
+    global.ALL_DISKS_UNLOCKED = true
+  }
 
   res.status(200).json({ message: 'Login successful' })
 }

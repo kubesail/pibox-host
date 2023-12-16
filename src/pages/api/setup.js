@@ -1,7 +1,6 @@
 import {
   createUser,
   setSystemPassword,
-  getConfig,
   saveConfig,
   execAsync,
   getSystemSerial,
@@ -9,9 +8,7 @@ import {
   sanitizeForLuks,
 } from '@/functions'
 import { stat, open, mkdir, writeFile } from 'fs/promises'
-
-const PIBOX_CONFIG_DIR = '/etc/pibox-host'
-const SETUP_COMPLETE_CHECK_FILEPATH = `${PIBOX_CONFIG_DIR}/initial-setup-complete`
+import { PIBOX_UNENCRYPTED_CONFIG_DIR, SETUP_COMPLETE_CHECK_FILEPATH } from '@/constants'
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +20,7 @@ export default async function handler(req, res) {
     }
   }
   // This blocks other / accidental setup requests until this one is complete
-  await mkdir(PIBOX_CONFIG_DIR, { recursive: true })
+  await mkdir(PIBOX_UNENCRYPTED_CONFIG_DIR, { recursive: true })
   await writeFile(SETUP_COMPLETE_CHECK_FILEPATH, '')
   return initialSetup(req, res)
 }
@@ -126,16 +123,14 @@ async function initialSetup(req, res) {
   try {
     await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
     await execAndLog('GLOBAL', `mkdir -p /pibox/files`)
-    global.LVM_MOUNTED = true
   } catch (err) {
     errors.push(`Error mounting logical volume: ${err}`)
   }
 
   await saveConfig(config)
 
-  global.DISKS_INITIALIZED = true
-  global.DISKS_UNLOCKED = true
-  global.LVM_MOUNTED = true
+  global.ALL_DISKS_ENCRYPTED = true
+  global.ALL_DISKS_UNLOCKED = true
 
   res.status(200).json({ success: true })
 }

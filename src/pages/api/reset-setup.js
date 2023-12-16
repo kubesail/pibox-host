@@ -63,14 +63,24 @@ async function resetDrives() {
 }
 
 /*
-  # Also as a bash script so you can copy/paste if needed
-  # -----
+  # Also as a bash script so you can copy/paste for quick debugging
+  deluser --remove-home dan
+  umount /pibox
+  sudo dd if=/dev/zero of=/dev/sda bs=1M count=10
+  sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10
+  rm /etc/pibox-host/initial-setup-complete
+*/
+
+/*
+  # Additional commands if you want to cleanly wipe the drives
   rm ~/.pibox/config.json
   USER=dan
   deluser --remove-home ${USER}
   # -----
-  echo "YES" | cryptsetup luksClose /dev/encrypted_sda
   umount /pibox
+  vgchange -an pibox_vg
+  echo "YES" | cryptsetup luksClose /dev/mapper/encrypted_sda
+  echo "YES" | cryptsetup luksClose /dev/mapper/encrypted_sdb
 
   # You can skip these lines as the full disk will be erased via "cryptsetup erase" below
   lvdisplay | grep "LV Path" | awk '{print $3}' | xargs -I {} lvchange -an {}
@@ -82,8 +92,8 @@ async function resetDrives() {
   
   echo "YES" | cryptsetup erase /dev/sda
   echo "YES" | cryptsetup erase /dev/sdb
+
   sudo dd if=/dev/zero of=/dev/sda bs=1M count=10
   sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10
-
   rm /etc/pibox-host/initial-setup-complete
 */
