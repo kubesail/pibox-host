@@ -2,6 +2,8 @@ import { unlink } from 'fs/promises'
 import { middlewareAuth, execAsync, execAndLog } from '@/functions'
 import { CONFIG_FILE_PATH } from '@/constants'
 
+// NOTE See bin/reset-setup.sh for the bash version of this script
+
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {
     return res.status(401).json({ error: 'Unauthorized' })
@@ -61,39 +63,3 @@ async function resetDrives() {
   await execAndLog('DRIVE2', `sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10`, { bypassError: true })
   await unlink('/etc/pibox-host/initial-setup-complete')
 }
-
-/*
-  # Also as a bash script so you can copy/paste for quick debugging
-  deluser --remove-home dan
-  umount /pibox
-  sudo dd if=/dev/zero of=/dev/sda bs=1M count=10
-  sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10
-  rm /etc/pibox-host/initial-setup-complete
-*/
-
-/*
-  # Additional commands if you want to cleanly wipe the drives
-  rm ~/.pibox/config.json
-  USER=dan
-  deluser --remove-home ${USER}
-  # -----
-  umount /pibox
-  vgchange -an pibox_vg
-  echo "YES" | cryptsetup luksClose /dev/mapper/encrypted_sda
-  echo "YES" | cryptsetup luksClose /dev/mapper/encrypted_sdb
-
-  # You can skip these lines as the full disk will be erased via "cryptsetup erase" below
-  lvdisplay | grep "LV Path" | awk '{print $3}' | xargs -I {} lvchange -an {}
-  vgchange -an
-  lvremove /dev/pibox_vg/pibox_lv -y
-  vgremove pibox_vg -y
-  pvremove /dev/sda -y
-  pvremove /dev/sdb -y
-  
-  echo "YES" | cryptsetup erase /dev/sda
-  echo "YES" | cryptsetup erase /dev/sdb
-
-  sudo dd if=/dev/zero of=/dev/sda bs=1M count=10
-  sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10
-  rm /etc/pibox-host/initial-setup-complete
-*/

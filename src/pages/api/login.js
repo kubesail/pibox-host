@@ -1,5 +1,14 @@
 import { readFile } from 'fs/promises'
-import { getConfig, saveConfig, checkSystemPassword, execAsync, sanitizeForLuks, execAndLog } from '@/functions'
+import { setTimeout as setTimeoutPromise } from 'timers/promises'
+import {
+  getOwner,
+  getConfig,
+  saveConfig,
+  checkSystemPassword,
+  execAsync,
+  sanitizeForLuks,
+  execAndLog,
+} from '@/functions'
 import c from 'chalk'
 
 const OTP_EXPIRY_WINDOW = 1000 * 60 * 10 // 10 minutes
@@ -32,8 +41,7 @@ export default async function handler(req, res) {
   }
 
   if (ownerLogin) {
-    const config = await getConfig()
-    user = config.owner
+    user = await getOwner()
   }
 
   if (!user || !password) {
@@ -66,11 +74,6 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Incorrect password' })
   }
 
-  const config = await getConfig()
-  await pushSession({ config, sessionKey, sessionName, sessionPlatform, user })
-
-  // TODO if owner, then use pass password to sedutil to unlock both drives and mount them
-
   if (ownerLogin && !global.ALL_DISKS_UNLOCKED) {
     const drivePassword = sanitizeForLuks(password)
     try {
@@ -83,14 +86,23 @@ export default async function handler(req, res) {
     } catch (err) {
       console.log(c.red(`Error unlocking /dev/sdb: ${err.stderr}`))
     }
+    await setTimeoutPromise(1000)
     await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
     global.ALL_DISKS_UNLOCKED = true
+
+    if (!global.HOME_SCREEN_LOOP_RUNNING) {
+      global.HOME_SCREEN_LOOP_RUNNING = true
+      // TODO
+      console.log('TODO: Show home screen loop')
+    }
   }
 
+  await pushSession({ sessionKey, sessionName, sessionPlatform, user })
   res.status(200).json({ message: 'Login successful' })
 }
 
-async function pushSession({ config, sessionKey, sessionName, sessionPlatform, user }) {
+async function pushSession({ sessionKey, sessionName, sessionPlatform, user }) {
+  const config = await getConfig()
   const existingSession = config.sessions.find((session) => session.key === sessionKey)
   if (!existingSession) {
     config.sessions.push({

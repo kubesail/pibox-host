@@ -1,10 +1,7 @@
 import { promisify } from 'util'
 import { exec } from 'child_process'
-import { readFile, writeFile, mkdir } from 'fs/promises'
 import { middlewareAuth, setSystemPassword } from '@/functions'
 const execAsync = promisify(exec)
-
-const CONFIG_FILE_PATH = '/root/.pibox/config.json'
 
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {

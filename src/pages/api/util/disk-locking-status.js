@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   const setupComplete = await checkSetupComplete()
   if (!setupComplete) {
     await writeScreen({ content: 'Welcome to PiBox', color: '3C89C7', background: '000000', size: 36, y: 70 })
-    await writeScreen({ content: 'Please use app\n to begin setup', color: 'ccc', size: 28, y: 160 })
+    await writeScreen({ content: 'Please use app\n to begin setup', color: 'ccc', size: 28, y: 170 })
   } else if (!global.ALL_DISKS_UNLOCKED) {
     await writeScreen({ content: 'Disks Locked', color: '3C89C7', background: '000000', size: 36, y: 55 })
     await writeScreen({ content: 'Please login\n as owner\n to unlock', color: 'ccc', size: 28, y: 150 })
@@ -44,6 +44,7 @@ export default async function handler(req, res) {
   } else {
     global.HOME_SCREEN_LOOP_RUNNING = true
     // TODO
+    console.log('TODO: Show home screen loop')
   }
 
   console.log(c.cyan(`Disk Status`))

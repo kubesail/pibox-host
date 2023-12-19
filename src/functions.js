@@ -4,11 +4,167 @@ import fs from 'fs'
 import { promisify } from 'util'
 import { exec, spawn } from 'child_process'
 import { readFile, writeFile, readdir, rm, mkdir, stat } from 'fs/promises'
-import { CONFIG_FILE_PATH, SETUP_COMPLETE_CHECK_FILEPATH } from '@/constants'
+import { OWNER_FILE_PATH, CONFIG_FILE_PATH, SETUP_COMPLETE_CHECK_FILEPATH } from '@/constants'
 import { createHash } from 'crypto'
 import { join } from 'path'
+import { createCanvas } from 'canvas'
 
 export const execAsync = promisify(exec)
+
+export async function drawHomeScreen() {
+  const width = 240
+  const height = 240
+
+  const canvas = createCanvas(width, height)
+  const ctx = canvas.getContext('2d')
+
+  const { stdout: dfOutput } = await execAsync('df /pibox')
+  const lines = dfOutput.split('\n')
+  const data = lines[1].split(/\s+/)
+  const usedSpace = data[2]
+  const totalSpace = data[1]
+  const percentageUsed = parseInt(data[4], 10)
+
+  function bytesToHuman(sizeInBytes) {
+    if (sizeInBytes === 0) return '0 TB'
+    const sizeInTerabytes = sizeInBytes / Math.pow(1000, 4)
+    return sizeInTerabytes.toFixed(1) + ' TB'
+  }
+
+  function drawStorageInfo() {
+    // Draw the "screen" of the storage with a border radius
+    drawRoundedRect(ctx, 20, 85, 200, 55, 10, '#555')
+
+    // Draw the "progress" on the storage with a border radius
+    let progressWidth = (200 * percentageUsed) / 100
+    progressWidth = Math.max(progressWidth, 11)
+    drawRoundedRect(ctx, 20, 85, progressWidth, 55, 10, '#3c89c7')
+
+    const usedSpaceHuman = bytesToHuman(usedSpace * 1024)
+    const totalSpaceHuman = bytesToHuman(totalSpace * 1024)
+
+    // Add the text
+    ctx.font = 'bold 16px Arial'
+    ctx.fillStyle = '#fff'
+    ctx.fillText(`${percentageUsed}%      ${usedSpaceHuman} / ${totalSpaceHuman}`, 25, 165)
+  }
+
+  // Function to draw a rounded rectangle
+  function drawRoundedRect(ctx, x, y, width, height, radius, fillColor) {
+    ctx.beginPath()
+    ctx.moveTo(x + radius, y)
+    ctx.lineTo(x + width - radius, y)
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+    ctx.lineTo(x + width, y + height - radius)
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+    ctx.lineTo(x + radius, y + height)
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+    ctx.lineTo(x, y + radius)
+    ctx.quadraticCurveTo(x, y, x + radius, y)
+    ctx.closePath()
+    if (fillColor) {
+      ctx.fillStyle = fillColor
+      ctx.fill()
+    }
+  }
+
+  // Function to draw a green checkmark icon with a rounded rectangle background
+  function drawCheckmarkIcon(ctx, x, y, size, backgroundColor, checkmarkColor) {
+    // Draw the rounded rectangle background
+    drawRoundedRect(ctx, x, y, size, size, 5, backgroundColor)
+    // Draw the checkmark
+    ctx.strokeStyle = checkmarkColor
+    ctx.lineWidth = 1
+    // Start the path for the checkmark
+    ctx.beginPath()
+    const checkStartX = x + size * 0.28
+    const checkStartY = y + size * 0.55
+    const checkMidX = x + size * 0.42
+    const checkMidY = y + size * 0.7
+    const checkEndX = x + size * 0.72
+    const checkEndY = y + size * 0.4
+    // Move to the start of the checkmark
+    ctx.moveTo(checkStartX, checkStartY)
+    // Draw line to the middle of the checkmark
+    ctx.lineTo(checkMidX, checkMidY)
+    // Draw line to the end of the checkmark
+    ctx.lineTo(checkEndX, checkEndY)
+    // Stroke the path
+    ctx.lineWidth = 5
+    ctx.stroke()
+    ctx.lineWidth = 1
+  }
+
+  // Draw the background of the "screen"
+  ctx.fillStyle = '#333'
+  ctx.fillRect(0, 0, width, height)
+
+  // Draw checkmark icon
+  const iconSize = 40 // Size of the icon background
+  drawCheckmarkIcon(ctx, 25, 25, iconSize, '#0f0', '#000') // x, y, size, background color, checkmark color
+
+  // Call the function to draw the storage information
+  drawStorageInfo()
+
+  // Add the text
+  ctx.font = 'bold 30px Arial'
+  ctx.fillStyle = '#fff'
+  ctx.fillText('Secure', 75, 55)
+
+  // Function to draw user icon
+  function drawUserIcon(x, y, color, isActive) {
+    ctx.fillStyle = color
+    ctx.strokeStyle = color
+    // Draw head
+    ctx.beginPath()
+    ctx.arc(x, y, 10, 0, Math.PI * 2, true) // head
+    if (isActive) {
+      ctx.fill()
+    } else {
+      ctx.stroke()
+    }
+
+    // Draw body with rounded shoulders
+    const shoulderWidth = 13
+    const bodyHeight = 22
+    const shoulderRadius = 5 // Radius for the shoulder corners
+
+    ctx.beginPath()
+    ctx.moveTo(x - shoulderWidth, y + bodyHeight) // Start at bottom left
+    ctx.lineTo(x - shoulderWidth, y + 15 + shoulderRadius) // Left side
+    ctx.arcTo(x - shoulderWidth, y + 15, x - shoulderWidth + shoulderRadius, y + 15, shoulderRadius) // Bottom left rounded corner
+    ctx.lineTo(x, y + 15) // Bottom
+    ctx.arcTo(x + shoulderWidth, y + 15, x + shoulderWidth, y + 15 + shoulderRadius, shoulderRadius) // Bottom right rounded corner
+    ctx.lineTo(x + shoulderWidth, y + bodyHeight + 1) // Right side
+    ctx.lineTo(x - shoulderWidth, y + bodyHeight + 1) // Right side
+    ctx.lineTo(x - shoulderWidth, y + bodyHeight) // Right side
+    ctx.stroke()
+    if (isActive) {
+      ctx.fill()
+    }
+  }
+
+  // Draw 4 user icons with different colors
+  const iconSpacing = 33
+  const startX = 30
+  const startY = 200
+  const colors = ['#4285f4', '#80868b', '#80868b', '#80868b'] // Red, Green, Blue, Yellow
+
+  for (let i = 0; i < colors.length; i++) {
+    drawUserIcon(startX + i * iconSpacing, startY, colors[i], i % 2 === 0)
+  }
+
+  // Save the canvas as an image
+  const buffer = canvas.toBuffer('image/png')
+
+  http
+    .request({
+      socketPath: '/var/run/pibox/framebuffer.sock',
+      path: '/image',
+      method: 'POST',
+    })
+    .write(buffer)
+}
 
 export async function checkSetupComplete() {
   let setupComplete = false
@@ -255,8 +411,20 @@ export async function getConfig() {
 }
 
 export async function saveConfig(config) {
-  mkdir('/root/.pibox', { recursive: true })
+  if (!global.ALL_DISKS_UNLOCKED) {
+    throw new Error('Cannot save config while disks are locked')
+  }
   await writeFile(CONFIG_FILE_PATH, JSON.stringify(config))
+}
+
+export async function saveOwner(username) {
+  await writeFile(OWNER_FILE_PATH, username)
+}
+
+export async function getOwner() {
+  let username = await readFile(OWNER_FILE_PATH, 'utf8')
+  username = username.trim()
+  return username
 }
 
 export async function checkSystemPassword(password, hashedPassword) {

@@ -25,6 +25,8 @@ export default function Home() {
         <section className="px-8 pt-4 container mx-auto">
           <p>
             See <Link href="/disks">Disks</Link>
+            <input type="password" />
+            <button>Submit</button>
           </p>
         </section>
       </main>

@@ -1,6 +1,7 @@
 import {
   createUser,
   setSystemPassword,
+  saveOwner,
   saveConfig,
   execAsync,
   getSystemSerial,
@@ -56,6 +57,10 @@ async function initialSetup(req, res) {
     }
   }
 
+  if (mirrored && disks.length !== 2) {
+    return res.status(400).json({ error: 'Mirroring requires 2 disks' })
+  }
+
   try {
     await execAsync(`deluser --remove-home pi`) // delete default pi user
   } catch (err) {
@@ -107,9 +112,6 @@ async function initialSetup(req, res) {
     }
   }
 
-  if (mirrored && disks.length !== 2) {
-    return res.status(400).json({ error: 'Mirroring requires 2 disks' })
-  }
   try {
     const mirrorArgs = mirrored ? '--type raid1 --mirrors 1' : ''
     await execAndLog('GLOBAL', `vgcreate pibox_vg ${disks.map((disk) => disk.unlockedPath).join(' ')}`)
@@ -127,10 +129,10 @@ async function initialSetup(req, res) {
     errors.push(`Error mounting logical volume: ${err}`)
   }
 
-  await saveConfig(config)
-
   global.ALL_DISKS_ENCRYPTED = true
   global.ALL_DISKS_UNLOCKED = true
 
+  await saveOwner(username)
+  await saveConfig(config)
   res.status(200).json({ success: true })
 }
