@@ -22,6 +22,7 @@ export default async function handler(req, res) {
     model: 'PiBox 2-Bay SSD',
     serial: serial,
     version: version,
+    publicKey: global.PUBLIC_CERTIFICATE?.toString() || '',
     setupComplete,
     newHddAvailable: !global.ALL_DISKS_ENCRYPTED,
     unlocked: global.ALL_DISKS_UNLOCKED,

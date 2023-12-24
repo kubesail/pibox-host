@@ -194,6 +194,13 @@ async function getFileOrDirListing({ req, res, path, piboxConfig, slug }) {
     }
   }
   res.writeHead(200, headers)
+  filesWithStats.sort((a, b) => {
+    if (a.dir && !b.dir) return -1
+    if (!a.dir && b.dir) return 1
+    if (a.name < b.name) return -1
+    if (a.name > b.name) return 1
+    return 0
+  })
   return res.end(JSON.stringify(filesWithStats))
 }
 

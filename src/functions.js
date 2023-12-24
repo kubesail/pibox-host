@@ -473,6 +473,24 @@ export async function setSystemPassword(username, password) {
   })
 }
 
+export async function setSambaPassword(username, password) {
+  return new Promise((resolve, reject) => {
+    let stderr = ''
+    let stdout = ''
+    const subprocess = spawn('/bin/smbpasswd', ['-a', username])
+    subprocess.stdin.write(password + '\n' + password + '\n')
+    subprocess.stdout.on('data', (data) => (stdout += data))
+    subprocess.stderr.on('data', (data) => (stderr += data))
+    subprocess.on('close', async (exitCode) => {
+      if (exitCode !== 0) {
+        console.error(`Error setting SAMBA password: ${stderr}`)
+        return reject(new Error('Error setting SAMBA password'))
+      }
+      resolve()
+    })
+  })
+}
+
 export async function getSystemSerial() {
   let serial = null
   try {

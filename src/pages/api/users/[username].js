@@ -1,6 +1,6 @@
 import { promisify } from 'util'
 import { exec } from 'child_process'
-import { middlewareAuth, setSystemPassword } from '@/functions'
+import { middlewareAuth, setSystemPassword, setSambaPassword } from '@/functions'
 const execAsync = promisify(exec)
 
 export default async function handler(req, res) {
@@ -34,11 +34,17 @@ export default async function handler(req, res) {
     }
     try {
       await setSystemPassword(req.query.username, req.body.password)
-      return res.status(200).json({ message: 'Password updated' })
     } catch (err) {
-      console.error(`Error setting password: ${err}`)
+      console.error(`Error setting SYSTEM password: ${err}`)
       return res.status(400).json({ error: err.message })
     }
+    try {
+      await setSambaPassword(req.query.username, req.body.password)
+    } catch (err) {
+      console.error(`Error setting SAMBA password: ${err}`)
+      return res.status(400).json({ error: err.message })
+    }
+    return res.status(200).json({ message: 'Password updated' })
   } else {
     return res.status(405).json({ error: 'Method not allowed' })
   }
