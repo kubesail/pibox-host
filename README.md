@@ -13,12 +13,11 @@ Endpoints are documented in Postman: https://www.postman.com/piboxapi/workspace/
 
 ```bash
 # Hdd tools, password tools
-sudo apt-get install -y smartmontools whois jq vim curl
+sudo apt-get install -y smartmontools cryptsetup whois jq vim curl
 # Give sudoers NOPASSWD requirement (same as pi user)
 sudo sed -i 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
 # Create root files directory (and mount it)
 mkdir /files
-echo " libata.allow_tpm=1" > /boot/cmdline.txt
 groupadd sambagroup
 
 # for canvas NPM package (https://github.com/Automattic/node-canvas)
