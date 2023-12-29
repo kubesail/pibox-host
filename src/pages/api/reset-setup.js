@@ -59,7 +59,7 @@ async function resetDrives() {
   await execAndLog('DRIVE2', `pvremove /dev/sdb -y`, { bypassError: true })
   await execAndLog('DRIVE1', `echo "YES" | cryptsetup erase /dev/sda`, { bypassError: true })
   await execAndLog('DRIVE2', `echo "YES" | cryptsetup erase /dev/sdb`, { bypassError: true })
-  await execAndLog('DRIVE1', `sudo dd if=/dev/zero of=/dev/sda bs=1M count=10`, { bypassError: true })
-  await execAndLog('DRIVE2', `sudo dd if=/dev/zero of=/dev/sdb bs=1M count=10`, { bypassError: true })
+  await execAndLog('DRIVE1', `dd if=/dev/zero of=/dev/sda bs=1M count=10`, { bypassError: true })
+  await execAndLog('DRIVE2', `dd if=/dev/zero of=/dev/sdb bs=1M count=10`, { bypassError: true })
   await unlink('/etc/pibox-host/initial-setup-complete')
 }

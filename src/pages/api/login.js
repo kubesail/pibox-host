@@ -1,12 +1,13 @@
 import { readFile } from 'fs/promises'
 import { setTimeout as setTimeoutPromise } from 'timers/promises'
 import {
+  startHomeScreen,
   getOwner,
   getConfig,
   saveConfig,
   checkSystemPassword,
   execAsync,
-  sanitizeForLuks,
+  sha256HexDigest,
   execAndLog,
 } from '@/functions'
 import c from 'chalk'
@@ -75,26 +76,31 @@ export default async function handler(req, res) {
   }
 
   if (ownerLogin && !global.ALL_DISKS_UNLOCKED) {
-    const drivePassword = sanitizeForLuks(password)
+    const drivePassword = sha256HexDigest(password) // sanitize password for LUKS input via CLI
+    // TODO a smarter way to do this is to iterate through all block devices and find ones that are encrypted. This could be stored globally, via disk-locking-status.js
     try {
-      await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sda encrypted_sda`)
+      await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/sda encrypted_sda`)
     } catch (err) {
       console.log(c.red(`Error unlocking /dev/sda: ${err.stderr}`))
     }
-    try {
-      await execAsync(`echo "${drivePassword}" | sudo cryptsetup luksOpen /dev/sdb encrypted_sdb`)
-    } catch (err) {
-      console.log(c.red(`Error unlocking /dev/sdb: ${err.stderr}`))
+    if (global.ALL_DISKS_ENCRYPTED) {
+      try {
+        await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/sdb encrypted_sdb`)
+      } catch (err) {
+        console.log(c.red(`Error unlocking /dev/sdb: ${err.stderr}`))
+      }
+    } else {
+      // store password for immediate next usage in expand-disks.js
+      global.TEMP_LUKS_PASSWORD = drivePassword
+      setTimeout(() => {
+        global.TEMP_LUKS_PASSWORD = null
+      }, 1000 * 60 * 5) // Expire in 5 minutes if not used
     }
     await setTimeoutPromise(1000)
     await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
+    await setTimeoutPromise(1000)
     global.ALL_DISKS_UNLOCKED = true
-
-    if (!global.HOME_SCREEN_LOOP_RUNNING) {
-      global.HOME_SCREEN_LOOP_RUNNING = true
-      // TODO
-      console.log('TODO: Show home screen loop')
-    }
+    startHomeScreen()
   }
 
   await pushSession({ sessionKey, sessionName, sessionPlatform, user })

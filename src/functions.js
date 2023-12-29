@@ -8,22 +8,30 @@ import { OWNER_FILE_PATH, CONFIG_FILE_PATH, SETUP_COMPLETE_CHECK_FILEPATH } from
 import { createHash } from 'crypto'
 import { join } from 'path'
 import { createCanvas } from 'canvas'
+import randomColor from 'randomcolor'
+import c from 'chalk'
 
 export const execAsync = promisify(exec)
+const PRESET_COLORS = '#1BBE4D,#D96CFF,#FF7896,#F9F871,#5C83FF'.split(',')
 
 export async function drawHomeScreen() {
+  const start = performance.now()
   const width = 240
   const height = 240
 
   const canvas = createCanvas(width, height)
   const ctx = canvas.getContext('2d')
 
-  const { stdout: dfOutput } = await execAsync('df /pibox')
-  const lines = dfOutput.split('\n')
-  const data = lines[1].split(/\s+/)
-  const usedSpace = data[2]
-  const totalSpace = data[1]
-  const percentageUsed = parseInt(data[4], 10)
+  if (!global.storage || global.storage.lastChecked < Date.now() - 1000 * 60 * 1) {
+    const { stdout: dfOutput } = await execAsync('df /pibox')
+    const lines = dfOutput.split('\n')
+    const data = lines[1].split(/\s+/)
+    global.storage = {}
+    global.storage.usedSpace = data[2]
+    global.storage.totalSpace = data[1]
+    global.storage.percentageUsed = parseInt(data[4], 10)
+    global.storage.lastChecked = Date.now()
+  }
 
   function bytesToHuman(sizeInBytes) {
     if (sizeInBytes === 0) return '0 TB'
@@ -36,17 +44,17 @@ export async function drawHomeScreen() {
     drawRoundedRect(ctx, 20, 85, 200, 55, 10, '#555')
 
     // Draw the "progress" on the storage with a border radius
-    let progressWidth = (200 * percentageUsed) / 100
+    let progressWidth = (200 * global.storage.percentageUsed) / 100
     progressWidth = Math.max(progressWidth, 11)
     drawRoundedRect(ctx, 20, 85, progressWidth, 55, 10, '#3c89c7')
 
-    const usedSpaceHuman = bytesToHuman(usedSpace * 1024)
-    const totalSpaceHuman = bytesToHuman(totalSpace * 1024)
+    const usedSpaceHuman = bytesToHuman(global.storage.usedSpace * 1024)
+    const totalSpaceHuman = bytesToHuman(global.storage.totalSpace * 1024)
 
     // Add the text
     ctx.font = 'bold 16px Arial'
     ctx.fillStyle = '#fff'
-    ctx.fillText(`${percentageUsed}%      ${usedSpaceHuman} / ${totalSpaceHuman}`, 25, 165)
+    ctx.fillText(`${global.storage.percentageUsed}%      ${usedSpaceHuman} / ${totalSpaceHuman}`, 25, 165)
   }
 
   // Function to draw a rounded rectangle
@@ -148,10 +156,12 @@ export async function drawHomeScreen() {
   const iconSpacing = 33
   const startX = 30
   const startY = 200
-  const colors = ['#4285f4', '#80868b', '#80868b', '#80868b'] // Red, Green, Blue, Yellow
 
-  for (let i = 0; i < colors.length; i++) {
-    drawUserIcon(startX + i * iconSpacing, startY, colors[i], i % 2 === 0)
+  for (let i = 0; i < global.users.length; i++) {
+    const user = global.users[i]
+    const color = i === 0 ? '#4285f4' : '#80868b'
+    const isActive = user.lastActive > Date.now() - 1000 * 60 * 1 // Show as active for 1 minute
+    drawUserIcon(startX + i * iconSpacing, startY, color, isActive)
   }
 
   // Save the canvas as an image
@@ -164,6 +174,7 @@ export async function drawHomeScreen() {
       method: 'POST',
     })
     .write(buffer)
+  // console.log(`Home screen drawn in ${performance.now() - start}ms`)
 }
 
 export async function checkSetupComplete() {
@@ -380,6 +391,12 @@ export async function middlewareAuth(req, res) {
   req.devicePlatform = sessions.platform
   req.isOwner = config.owner === sessions.user
   console.log(`Authorized ${req.method} ${req.url} from ${req.user} [${sessions.name}]`)
+  global.users = global.users.map((user) => {
+    if (user.username === sessions.user) {
+      user.lastActive = Date.now()
+    }
+    return user
+  })
   return true
 }
 
@@ -387,7 +404,7 @@ export async function execAndLog(label, cmd, { bypassError = false } = {}) {
   if (!label || !cmd) {
     throw new Error('Missing label or command')
   }
-  console.log(`[${label}] ${bypassError} running ${cmd}`)
+  console.log(c.bgCyan.black(`[${label}, ${bypassError ? 'BypassError' : 'HaltOnError'}]`), cmd)
   if (bypassError) {
     try {
       await execAsync(cmd)
@@ -503,9 +520,8 @@ export async function getSystemSerial() {
   return serial
 }
 
-export function sanitizeForLuks(password) {
-  // hash the password and get a hex digest to prevent shell injection
-  return createHash('sha256').update(password).digest('hex')
+export function sha256HexDigest(data) {
+  return createHash('sha256').update(data).digest('hex')
 }
 
 export async function writeScreen(options) {
@@ -531,4 +547,66 @@ export async function drawScreen(image) {
     req.write(image)
     setTimeout(() => resolve(), 200)
   })
+}
+
+export function startHomeScreen() {
+  if (!global.HOME_SCREEN_LOOP) {
+    global.HOME_SCREEN_LOOP = setInterval(() => fetch('http://localhost/api/util/draw-home-screen'), 1000)
+  }
+}
+
+export async function getLuksData(device) {
+  try {
+    const { stdout: isLuks, code } = await execAsync(`cryptsetup isLuks /dev/${device.name}`)
+    let unlocked = false
+    try {
+      const { stdout: luksStatus } = await execAsync(`cryptsetup status encrypted_${device.name}`)
+      unlocked = luksStatus.includes(`/dev/mapper/encrypted_${device.name} is active`)
+    } catch (err) {}
+    return { encrypted: true, unlocked: unlocked }
+  } catch (error) {
+    return { encrypted: false, unlocked: null }
+  }
+}
+
+export async function getSystemUsers() {
+  const config = await getConfig()
+  if (!config) {
+    return res.status(400).json({ error: 'Device not set up yet' })
+  }
+
+  let users
+  try {
+    users = await readFile('/etc/passwd', 'utf8')
+  } catch (err) {
+    console.error(`Error getting users: ${err}`)
+    return res.status(500).json({ error: 'Error getting users' })
+  }
+
+  return users
+    .split('\n')
+    .map((user) => {
+      const [username, _password, _uid, _gid, fullName, _home, shell] = user.split(':')
+      return { username, fullName, shell }
+    })
+    .filter((user) => ['/bin/bash', '/bin/zsh'].includes(user.shell) && user.username !== 'root')
+    .sort((user) => {
+      // sort owner first
+      if (user.username === config.owner) return -1
+      return 0
+    })
+    .map((user, index) => {
+      return {
+        fullName: user.fullName,
+        username: user.username,
+        isOwner: user.username === config.owner,
+        color:
+          PRESET_COLORS[index]?.toLowerCase() ||
+          randomColor({
+            luminosity: 'light',
+            format: 'hex',
+            seed: index * 3,
+          }),
+      }
+    })
 }

@@ -6,7 +6,7 @@ import {
   execAsync,
   getSystemSerial,
   execAndLog,
-  sanitizeForLuks,
+  sha256HexDigest,
 } from '@/functions'
 import { stat, open, mkdir, writeFile } from 'fs/promises'
 import { PIBOX_UNENCRYPTED_CONFIG_DIR, SETUP_COMPLETE_CHECK_FILEPATH } from '@/constants'
@@ -72,10 +72,17 @@ async function initialSetup(req, res) {
   try {
     await createUser(username, fullName)
     await setSystemPassword(username, password)
-    // give owner user sudo privileges
+    // give owner user privileges
     await execAsync(`adduser ${username} sudo`)
     await execAsync(`usermod -aG sambagroup ${username}`)
   } catch (err) {
+    return res.status(400).json({ error: err.message })
+  }
+
+  try {
+    await setSambaPassword(username, password)
+  } catch (err) {
+    console.error(`Error setting SAMBA password: ${err}`)
     return res.status(400).json({ error: err.message })
   }
 
@@ -94,37 +101,42 @@ async function initialSetup(req, res) {
       },
     ],
     shares: [],
+    groups: [],
   }
 
   // Enable encryption on each disk
-  const luksPassword = sanitizeForLuks(password)
+  const drivePassword = sha256HexDigest(password) // sanitize password for LUKS input via CLI
   for (const disk of disks) {
     console.log(`Enabling encryption for disk ${disk.name}`)
-    await execAsync(`echo "${luksPassword}" | sudo cryptsetup luksFormat /dev/${disk.name}`)
+    // IMPORTANT silent exec here to avoid leaking password to logs
+    await execAsync(`echo "${drivePassword}" | cryptsetup luksFormat /dev/${disk.name}`)
     console.log(`Unlocking disk ${disk.name}`)
     disk.unlockedName = `encrypted_${disk.name}`
     disk.unlockedPath = `/dev/mapper/${disk.unlockedName}`
-    await execAsync(`echo "${luksPassword}" | sudo cryptsetup luksOpen /dev/${disk.name} ${disk.unlockedName}`)
+    // IMPORTANT silent exec here to avoid leaking password to logs
+    await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/${disk.name} ${disk.unlockedName}`)
     try {
-      await execAndLog(disk.name, `pvcreate ${disk.unlockedPath}`)
+      await execAndLog('disks:' + disk.name, `pvcreate ${disk.unlockedPath}`)
     } catch (err) {
       return res.status(500).json({ error: `Error setting up drive ${disk.unlockedName}: ${err}` })
     }
   }
 
+  console.log(`Creating LVM volume group and logical volume: ${disks.map((disk) => disk.unlockedPath).join(' ')}`)
+
   try {
     const mirrorArgs = mirrored ? '--type raid1 --mirrors 1' : ''
-    await execAndLog('GLOBAL', `vgcreate pibox_vg ${disks.map((disk) => disk.unlockedPath).join(' ')}`)
-    await execAndLog('GLOBAL', `lvcreate ${mirrorArgs} -l 100%FREE -n pibox_lv pibox_vg`)
-    await execAndLog('GLOBAL', `mkfs.ext4 -E lazy_itable_init=1,lazy_journal_init=1 /dev/pibox_vg/pibox_lv`)
-    await execAndLog('GLOBAL', `mkdir -p /pibox`)
+    await execAndLog('disks:global', `vgcreate pibox_vg ${disks.map((disk) => disk.unlockedPath).join(' ')}`)
+    await execAndLog('disks:global', `lvcreate ${mirrorArgs} -l 100%FREE -n pibox_lv pibox_vg`)
+    await execAndLog('disks:global', `mkfs.ext4 -E lazy_itable_init=1,lazy_journal_init=1 /dev/pibox_vg/pibox_lv`)
+    await execAndLog('disks:global', `mkdir -p /pibox`)
   } catch (err) {
     return res.status(500).json({ error: `Error preparing LVM: ${err}` })
   }
 
   try {
-    await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
-    await execAndLog('GLOBAL', `mkdir -p /pibox/files`)
+    await execAndLog('disks:global', `mount /dev/pibox_vg/pibox_lv /pibox`)
+    await execAndLog('disks:global', `mkdir -p /pibox/files`)
   } catch (err) {
     errors.push(`Error mounting logical volume: ${err}`)
   }

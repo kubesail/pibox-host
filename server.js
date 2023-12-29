@@ -34,6 +34,7 @@ async function start() {
       console.log(`> Ready on http://${hostname}:${HTTP_PORT}`)
       await diskLockingStatus()
       await autoUpdatePreSetup()
+      await initActiveUsers()
     })
     const httpsOpts = await getOrCreateKeys()
     createHttpsServer(httpsOpts, (req, res) => {
@@ -47,6 +48,10 @@ start()
 
 async function diskLockingStatus() {
   await fetch('http://localhost/api/util/disk-locking-status')
+}
+
+async function initActiveUsers() {
+  await fetch('http://localhost/api/util/init-active-users')
 }
 
 async function autoUpdatePreSetup() {

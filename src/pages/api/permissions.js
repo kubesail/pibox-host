@@ -1,7 +1,15 @@
-import { middlewareAuth } from '@/functions'
-import { getConfig, saveConfig } from '@/functions'
-import { stat } from 'fs/promises'
+import { middlewareAuth, execAndLog } from '@/functions'
+import { getConfig, saveConfig, sha256HexDigest } from '@/functions'
+import { stat, writeFile } from 'fs/promises'
 import { PIBOX_FILES_PREFIX } from '@/constants'
+import { createDiffieHellmanGroup } from 'crypto'
+
+async function createGroup(groupName, users) {
+  await execAndLog('global:samba', `groupadd ${groupName}`)
+  for (const user of users) {
+    await execAndLog('global:samba', `usermod -a -G ${groupName} ${user}`)
+  }
+}
 
 export default async function handler(req, res) {
   if (!(await middlewareAuth(req, res))) {
@@ -39,31 +47,54 @@ export default async function handler(req, res) {
   }
 
   const config = await getConfig()
-  let updated = false
-  config.shares = config.shares.map((share) => {
-    if (share.path === path) {
-      share.users = users
-      updated = true
-    }
-    return share
-  })
+  config.groups = config.groups || []
+  let updatedExistingShare = false
 
-  if (!updated) {
+  let share = config.shares.find((share) => share.path === path)
+  if (!share) {
     const existingNames = config.shares.map((share) => share.name)
     const nameBase = path
       .split('/')
       .filter((p) => p)
       .pop()
+      .replace(/[<>:"\/\\|?*\[\]]/g, '')
     let i = 1
     let name = nameBase
     while (existingNames.includes(name)) {
       name = `${nameBase} (${i})`
       i++
     }
-    config.shares.push({ name, path, users })
+    config.shares.push({ name, path })
+    share = config.shares[config.shares.length - 1]
   }
 
-  await saveConfig(config)
+  share.groupName = 'samba-' + sha256HexDigest(users.sort().join(',')).substring(0, 16) // 31 char limit for total group name
+  if (!config.groups.find((group) => group.groupName === share.groupName)) {
+    createGroup(share.groupName, users) // Async function, but we don't need to await it. Group creation can happen out of request cycle
+    config.groups.push({ groupName: share.groupName, users: users })
+  }
 
+  let smbConfig = `# Group Name to User mapping`
+  smbConfig += config.groups.map((group) => `# ${group.groupName} => ${group.usersString}\n`)
+  smbConfig += `\n\n`
+  smbConfig = `[global]
+  netbios name = PIBOX
+  workgroup = WORKGROUP
+  access based share enum = yes
+  logging = syslog
+  server role = standalone server
+  veto files = /._*/.DS_Store/
+  delete veto files = yes\n\n`
+
+  config.shares.forEach((share) => {
+    smbConfig += `[${share.name}]
+    path = ${PIBOX_FILES_PREFIX + share.path}
+    read only = no
+    valid users = @${share.groupName}\n\n`
+  })
+
+  await saveConfig(config)
+  await writeFile('/etc/samba/smb.conf', smbConfig)
+  await execAndLog('global:samba', 'systemctl restart smbd')
   res.status(200).json({ message: 'Permissions updated' })
 }

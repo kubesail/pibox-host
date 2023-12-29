@@ -1,6 +1,6 @@
 import { promisify } from 'util'
 import { exec } from 'child_process'
-import { middlewareAuth, setSystemPassword, setSambaPassword } from '@/functions'
+import { middlewareAuth, setSystemPassword, setSambaPassword, getSystemUsers } from '@/functions'
 const execAsync = promisify(exec)
 
 export default async function handler(req, res) {
@@ -24,6 +24,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: `User ${username} does not exist` })
       }
     }
+    global.users = await getSystemUsers()
     return res.status(200).json({ message: 'User deleted' })
   } else if (req.method === 'PUT') {
     if (req.isOwner !== true && req.user !== req.query.username) {
@@ -44,6 +45,7 @@ export default async function handler(req, res) {
       console.error(`Error setting SAMBA password: ${err}`)
       return res.status(400).json({ error: err.message })
     }
+    global.users = await getSystemUsers()
     return res.status(200).json({ message: 'Password updated' })
   } else {
     return res.status(405).json({ error: 'Method not allowed' })

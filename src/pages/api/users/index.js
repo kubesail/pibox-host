@@ -1,8 +1,4 @@
-import { readFile } from 'fs/promises'
-import { createUser, setSystemPassword, middlewareAuth, getConfig, saveConfig } from '@/functions'
-import randomColor from 'randomcolor'
-
-const PRESET_COLORS = '#1BBE4D,#D96CFF,#FF7896,#F9F871,#5C83FF'.split(',')
+import { createUser, setSystemPassword, middlewareAuth, getConfig, saveConfig, getSystemUsers } from '@/functions'
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -48,6 +44,9 @@ export default async function handler(req, res) {
     const config = await getConfig()
     // config.users.push({ username, fullName });
     saveConfig(config)
+    setTimeout(async () => {
+      global.users = await getSystemUsers()
+    }, 3000)
     return res.status(201).json({ message: 'User created' })
   } else {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -55,48 +54,7 @@ export default async function handler(req, res) {
 }
 
 async function listUsers(req, res) {
-  const config = await getConfig()
-  if (!config) {
-    return res.status(400).json({ error: 'Device not set up yet' })
-  }
-
-  let users
-  try {
-    users = await readFile('/etc/passwd', 'utf8')
-  } catch (err) {
-    console.error(`Error getting users: ${err}`)
-    return res.status(500).json({ error: 'Error getting users' })
-  }
-
-  // parse passwd file
-
-  users = users
-    .split('\n')
-    .map((user) => {
-      const [username, _password, _uid, _gid, fullName, _home, shell] = user.split(':')
-      return { username, fullName, shell }
-    })
-    .filter((user) => ['/bin/bash', '/bin/zsh'].includes(user.shell) && user.username !== 'root')
-    .sort((user) => {
-      // sort owner first
-      if (user.username === config.owner) return -1
-      return 0
-    })
-    .map((user, index) => {
-      return {
-        fullName: user.fullName,
-        username: user.username,
-        isOwner: user.username === config.owner,
-        color:
-          PRESET_COLORS[index]?.toLowerCase() ||
-          randomColor({
-            luminosity: 'light',
-            format: 'hex',
-            seed: index * 3,
-          }),
-      }
-    })
-
+  const users = await getSystemUsers()
   // console.log(users);
   res.status(200).json(users)
 }

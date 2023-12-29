@@ -1,4 +1,4 @@
-import { writeScreen, execAsync, checkSetupComplete } from '@/functions'
+import { writeScreen, startHomeScreen, execAsync, checkSetupComplete, getLuksData } from '@/functions'
 import c from 'chalk'
 
 export default async function handler(req, res) {
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
       .filter((disk) => disk.name.startsWith('sd'))
   } catch (err) {
     console.error(`Could not list block devices: ${err}`)
-    process.exit(1)
+    throw err
   }
   for (const disk of disks) {
     const { encrypted, unlocked } = await getLuksData(disk)
@@ -18,8 +18,10 @@ export default async function handler(req, res) {
     disk.unlocked = unlocked
   }
   // if all disks are unlocked, mount the LVM
-  if (disks.every((disk) => disk.unlocked === true)) {
-    global.ALL_DISKS_UNLOCKED = true
+  global.ALL_DISKS_UNLOCKED = disks.every((disk) => disk.unlocked === true)
+  global.ALL_DISKS_ENCRYPTED = disks.every((disk) => disk.encrypted === true)
+
+  if (global.ALL_DISKS_UNLOCKED) {
     try {
       await execAsync('mount /dev/pibox_vg/pibox_lv /pibox')
     } catch (err) {
@@ -27,13 +29,9 @@ export default async function handler(req, res) {
     }
   }
 
-  if (disks.every((disk) => disk.encrypted === true)) {
-    global.ALL_DISKS_ENCRYPTED = true
-  }
-
   const setupComplete = await checkSetupComplete()
   if (!setupComplete) {
-    await writeScreen({ content: 'Welcome to PiBox', color: '3C89C7', background: '000000', size: 36, y: 70 })
+    await writeScreen({ content: 'Welcome to PiBox!', color: '3C89C7', background: '000000', size: 36, y: 70 })
     await writeScreen({ content: 'Please use app\n to begin setup', color: 'ccc', size: 28, y: 170 })
   } else if (!global.ALL_DISKS_UNLOCKED) {
     await writeScreen({ content: 'Disks Locked', color: '3C89C7', background: '000000', size: 36, y: 55 })
@@ -42,9 +40,7 @@ export default async function handler(req, res) {
     await writeScreen({ content: 'New Disk Added', color: '3C89C7', background: '000000', size: 36, y: 70 })
     await writeScreen({ content: 'Continue setup\n on app', color: 'ccc', size: 28, y: 165 })
   } else {
-    global.HOME_SCREEN_LOOP_RUNNING = true
-    // TODO
-    console.log('TODO: Show home screen loop')
+    startHomeScreen()
   }
 
   console.log(c.cyan(`Disk Status`))
@@ -55,18 +51,4 @@ export default async function handler(req, res) {
   }
 
   res.status(200).json(disks)
-}
-
-async function getLuksData(device) {
-  try {
-    const { stdout: isLuks, code } = await execAsync(`cryptsetup isLuks /dev/${device.name}`)
-    let unlocked = false
-    try {
-      const { stdout: luksStatus } = await execAsync(`cryptsetup status encrypted_${device.name}`)
-      unlocked = luksStatus.includes(`/dev/mapper/encrypted_${device.name} is active`)
-    } catch (err) {}
-    return { encrypted: true, unlocked: unlocked }
-  } catch (error) {
-    return { encrypted: false, unlocked: null }
-  }
 }
