@@ -7,6 +7,9 @@ import {
   getSystemSerial,
   execAndLog,
   sha256HexDigest,
+  setSambaPassword,
+  startHomeScreen,
+  writeScreen,
 } from '@/functions'
 import { stat, open, mkdir, writeFile } from 'fs/promises'
 import { PIBOX_UNENCRYPTED_CONFIG_DIR, SETUP_COMPLETE_CHECK_FILEPATH } from '@/constants'
@@ -68,6 +71,9 @@ async function initialSetup(req, res) {
       throw err
     }
   }
+
+  await writeScreen({ content: 'Setup In Progress', color: '3C89C7', background: '000000', size: 36, y: 70 })
+  await writeScreen({ content: 'Please wait while encryption is being enabled', color: 'ccc', size: 28, y: 170 })
 
   try {
     await createUser(username, fullName)
@@ -146,5 +152,6 @@ async function initialSetup(req, res) {
 
   await saveOwner(username)
   await saveConfig(config)
+  startHomeScreen()
   res.status(200).json({ success: true })
 }

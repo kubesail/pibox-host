@@ -10,6 +10,7 @@ import { join } from 'path'
 import { createCanvas } from 'canvas'
 import randomColor from 'randomcolor'
 import c from 'chalk'
+import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
 export const execAsync = promisify(exec)
 const PRESET_COLORS = '#1BBE4D,#D96CFF,#FF7896,#F9F871,#5C83FF'.split(',')
@@ -549,7 +550,9 @@ export async function drawScreen(image) {
   })
 }
 
-export function startHomeScreen() {
+export async function startHomeScreen() {
+  await setTimeoutPromise(2000)
+  global.users = await getSystemUsers()
   if (!global.HOME_SCREEN_LOOP) {
     global.HOME_SCREEN_LOOP = setInterval(() => fetch('http://localhost/api/util/draw-home-screen'), 1000)
   }
@@ -572,7 +575,7 @@ export async function getLuksData(device) {
 export async function getSystemUsers() {
   const config = await getConfig()
   if (!config) {
-    return res.status(400).json({ error: 'Device not set up yet' })
+    return []
   }
 
   let users
