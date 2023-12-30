@@ -13,7 +13,7 @@ import c from 'chalk'
 import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
 export const execAsync = promisify(exec)
-const PRESET_COLORS = '#1BBE4D,#D96CFF,#FF7896,#F9F871,#5C83FF'.split(',')
+const PRESET_COLORS = '#3B89C7,#C98D09,#1BBE4D,#D8D8D4,#774399,#FF7896,#F9F871'.split(',')
 
 export async function drawHomeScreen() {
   const start = performance.now()
@@ -32,6 +32,12 @@ export async function drawHomeScreen() {
     global.storage.totalSpace = data[1]
     global.storage.percentageUsed = parseInt(data[4], 10)
     global.storage.lastChecked = Date.now()
+  }
+
+  // If the storage is less than 64GB, show a warning
+  if (global.storage.totalSpace < 64 * 1024 * 1024) {
+    console.log(c.bgYellowBright.black('WARNING: Storage array not mounted'))
+    return
   }
 
   function bytesToHuman(sizeInBytes) {
@@ -160,7 +166,8 @@ export async function drawHomeScreen() {
 
   for (let i = 0; i < global.users.length; i++) {
     const user = global.users[i]
-    const color = i === 0 ? '#4285f4' : '#80868b'
+    // const color = i === 0 ? '#4285f4' : '#80868b'
+    const color = user.color
     const isActive = user.lastActive > Date.now() - 1000 * 60 * 1 // Show as active for 1 minute
     drawUserIcon(startX + i * iconSpacing, startY, color, isActive)
   }

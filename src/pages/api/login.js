@@ -98,7 +98,7 @@ export default async function handler(req, res) {
     }
     await setTimeoutPromise(1000)
     await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
-    await setTimeoutPromise(1000)
+    await setTimeoutPromise(3000)
     global.ALL_DISKS_UNLOCKED = true
     startHomeScreen()
   }
@@ -109,6 +109,7 @@ export default async function handler(req, res) {
 
 async function pushSession({ sessionKey, sessionName, sessionPlatform, user }) {
   const config = await getConfig()
+  console.lo
   const existingSession = config.sessions.find((session) => session.key === sessionKey)
   if (!existingSession) {
     config.sessions.push({
