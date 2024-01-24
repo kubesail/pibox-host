@@ -21,7 +21,7 @@ export default function Header({ loadUser = true }) {
     } else {
       setLoading(false)
     }
-  }, [])
+  }, [loaduser])
 
   return (
     <header className="bg-steel-blue-500 text-white">

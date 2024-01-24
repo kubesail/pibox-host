@@ -24,7 +24,7 @@ export default function Home() {
 
         <section className="px-8 pt-4 container mx-auto">
           <h1 className="text-3xl font-semibold mb-4 mt-2">Files</h1>
-          {loading ? <p>Loading...</p> : files.map((file) => <div>{file.name}</div>)}
+          {loading ? <p>Loading...</p> : files.map((file) => <div key={file.name}>{file.name}</div>)}
         </section>
       </main>
     </>

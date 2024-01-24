@@ -93,7 +93,7 @@ export default function Home() {
         </section>
         <section className="px-8 container mx-auto flex justify-center">
           <div className="mt-24 flex justify-center border rounded p-4 bg-pibox-gray-300">
-            <b className="mr-2">Tip:</b> To login as a collaborator, scan a QR code from the owner's device.
+            <b className="mr-2">Tip:</b> To login as a collaborator, scan a QR code from the owner&apos;s device.
           </div>
         </section>
       </main>
