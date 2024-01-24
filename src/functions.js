@@ -439,7 +439,6 @@ export async function getConfig() {
   try {
     config = JSON.parse(await readFile(CONFIG_FILE_PATH, 'utf8'))
   } catch (err) {
-    console.error(`Error reading config file: ${err}`)
     config = null
   }
   return config
