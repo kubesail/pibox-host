@@ -4,7 +4,12 @@ import fs from 'fs'
 import { promisify } from 'util'
 import { exec, spawn } from 'child_process'
 import { readFile, writeFile, readdir, rm, mkdir, stat } from 'fs/promises'
-import { OWNER_FILE_PATH, CONFIG_FILE_PATH, SETUP_COMPLETE_CHECK_FILEPATH } from '@/constants'
+import {
+  OWNER_FILE_PATH,
+  CONFIG_FILE_PATH,
+  SETUP_COMPLETE_CHECK_FILEPATH,
+  UPDATE_IN_PROGRESS_CHECK_FILEPATH,
+} from '@/constants'
 import { createHash } from 'crypto'
 import { join } from 'path'
 import { createCanvas } from 'canvas'
@@ -175,13 +180,17 @@ export async function drawHomeScreen() {
   // Save the canvas as an image
   const buffer = canvas.toBuffer('image/png')
 
-  const req = http.request({
-    socketPath: '/var/run/pibox/framebuffer.sock',
-    path: '/image',
-    method: 'POST',
-  })
-  req.write(buffer)
-  req.end()
+  try {
+    const req = http.request({
+      socketPath: '/var/run/pibox/framebuffer.sock',
+      path: '/image',
+      method: 'POST',
+    })
+    req.write(buffer)
+    req.end()
+  } catch {
+    console.warn('Error writing to framebuffer')
+  }
 }
 
 export async function checkSetupComplete() {
@@ -235,9 +244,18 @@ export async function prepareUpdate(newVersion) {
   const downloadSize = release.size
   // save download size to config file
   let config = await getConfig()
-  config.downloadInProgress = true
-  config.downloadSize = downloadSize
-  config.downloadPath = `/opt/pibox-host/${newVersion}.tar.gz`
+  if (config) {
+    config.downloadInProgress = true
+    config.downloadSize = downloadSize
+    config.downloadPath = `/opt/pibox-host/${newVersion}.tar.gz`
+  }
+  try {
+    await stat(UPDATE_IN_PROGRESS_CHECK_FILEPATH)
+    return res.status(400).json({ error: 'Download already in progress' })
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+  await writeFile(UPDATE_IN_PROGRESS_CHECK_FILEPATH, '')
   await saveConfig(config)
 
   // Download new version
@@ -526,27 +544,37 @@ export function sha256HexDigest(data) {
 export async function writeScreen(options) {
   return new Promise((resolve, reject) => {
     const params = new URLSearchParams(options).toString()
-    const req = http.request({
-      socketPath: '/var/run/pibox/framebuffer.sock',
-      path: `/text?${params}`,
-      method: 'POST',
-    })
-    req.write(params)
-    req.end()
-    req.on('finish', () => resolve())
+    try {
+      const req = http.request({
+        socketPath: '/var/run/pibox/framebuffer.sock',
+        path: `/text?${params}`,
+        method: 'POST',
+      })
+      req.write(params)
+      req.end()
+      req.on('finish', () => resolve())
+    } catch {
+      console.warn('Error writing to framebuffer')
+      resolve()
+    }
   })
 }
 
 export async function drawScreen(image) {
   return new Promise((resolve, reject) => {
-    const req = http.request({
-      socketPath: '/var/run/pibox/framebuffer.sock',
-      path: '/image',
-      method: 'POST',
-    })
-    req.on('finish', () => resolve())
-    req.write(image)
-    req.end()
+    try {
+      const req = http.request({
+        socketPath: '/var/run/pibox/framebuffer.sock',
+        path: '/image',
+        method: 'POST',
+      })
+      req.on('finish', () => resolve())
+      req.write(image)
+      req.end()
+    } catch {
+      console.warn('Error writing to framebuffer')
+      resolve()
+    }
   })
 }
 
