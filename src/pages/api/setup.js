@@ -12,17 +12,27 @@ import {
   writeScreen,
 } from '@/functions'
 import { stat, open, mkdir, writeFile } from 'fs/promises'
-import { PIBOX_UNENCRYPTED_CONFIG_DIR, SETUP_COMPLETE_CHECK_FILEPATH } from '@/constants'
+import {
+  PIBOX_UNENCRYPTED_CONFIG_DIR,
+  SETUP_COMPLETE_CHECK_FILEPATH,
+  UPDATE_IN_PROGRESS_CHECK_FILEPATH,
+} from '@/constants'
 
 export default async function handler(req, res) {
   try {
     await stat(SETUP_COMPLETE_CHECK_FILEPATH)
     return res.status(400).json({ error: 'Initial setup already completed' })
   } catch (err) {
-    if (err.code !== 'ENOENT') {
-      throw err
-    }
+    if (err.code !== 'ENOENT') throw err
   }
+
+  try {
+    await stat(UPDATE_IN_PROGRESS_CHECK_FILEPATH)
+    return res.status(400).json({ error: 'Please wait until initial update is complete' })
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+
   // This blocks other / accidental setup requests until this one is complete
   await mkdir(PIBOX_UNENCRYPTED_CONFIG_DIR, { recursive: true })
   await writeFile(SETUP_COMPLETE_CHECK_FILEPATH, '')
