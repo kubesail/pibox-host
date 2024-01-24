@@ -13,7 +13,7 @@ import c from 'chalk'
 import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
 export const execAsync = promisify(exec)
-const PRESET_COLORS = '#1BBE4D,#D96CFF,#FF7896,#F9F871,#5C83FF'.split(',')
+const PRESET_COLORS = '#3B89C7,#C98D09,#1BBE4D,#D8D8D4,#774399,#FF7896,#F9F871'.split(',')
 
 export async function drawHomeScreen() {
   const start = performance.now()
@@ -32,6 +32,12 @@ export async function drawHomeScreen() {
     global.storage.totalSpace = data[1]
     global.storage.percentageUsed = parseInt(data[4], 10)
     global.storage.lastChecked = Date.now()
+  }
+
+  // If the storage is less than 64GB, show a warning
+  if (global.storage.totalSpace < 64 * 1024 * 1024) {
+    console.log(c.bgYellowBright.black('WARNING: Storage array not mounted'))
+    return
   }
 
   function bytesToHuman(sizeInBytes) {
@@ -160,7 +166,8 @@ export async function drawHomeScreen() {
 
   for (let i = 0; i < global.users.length; i++) {
     const user = global.users[i]
-    const color = i === 0 ? '#4285f4' : '#80868b'
+    // const color = i === 0 ? '#4285f4' : '#80868b'
+    const color = user.color
     const isActive = user.lastActive > Date.now() - 1000 * 60 * 1 // Show as active for 1 minute
     drawUserIcon(startX + i * iconSpacing, startY, color, isActive)
   }
@@ -168,14 +175,13 @@ export async function drawHomeScreen() {
   // Save the canvas as an image
   const buffer = canvas.toBuffer('image/png')
 
-  http
-    .request({
-      socketPath: '/var/run/pibox/framebuffer.sock',
-      path: '/image',
-      method: 'POST',
-    })
-    .write(buffer)
-  // console.log(`Home screen drawn in ${performance.now() - start}ms`)
+  const req = http.request({
+    socketPath: '/var/run/pibox/framebuffer.sock',
+    path: '/image',
+    method: 'POST',
+  })
+  req.write(buffer)
+  req.end()
 }
 
 export async function checkSetupComplete() {
@@ -368,26 +374,19 @@ export async function middlewareAuth(req, res) {
   //   ],
   // };
 
-  const [_scheme, deviceKey] = (req.headers?.authorization || '').split(' ')
-  if (!deviceKey) {
-    res.status(401).json({
-      error:
-        "Restricted route. Please include a device key in your authorization header. Example format: 'Authorization: bearer XXXXX'",
-    })
+  const [_scheme, sessionKey] = (req.headers?.authorization || '').split(' ')
+  if (!sessionKey) {
     return false
   }
 
   const config = await getConfig()
 
-  const sessions = config.sessions.find((session) => session.key === deviceKey)
+  const sessions = config.sessions.find((session) => session.key === sessionKey)
   if (!sessions) {
-    res.status(401).json({
-      error: 'Unauthorized',
-    })
     return false
   }
   req.user = sessions.user
-  req.deviceKey = sessions.key
+  req.sessionKey = sessions.key
   req.deviceName = sessions.name
   req.devicePlatform = sessions.platform
   req.isOwner = config.owner === sessions.user
@@ -512,9 +511,8 @@ export async function setSambaPassword(username, password) {
 export async function getSystemSerial() {
   let serial = null
   try {
-    const { stdout, stderr } = await execAsync('ip link show eth0')
-    const macAddressRegex = /ether\s+([^\s]+)/
-    serial = stdout.match(macAddressRegex)[1]?.replace(/:/g, '')
+    const { stdout, stderr } = await execAsync('cat /proc/cpuinfo | grep Serial')
+    serial = stdout.split(':')[1].trim()
   } catch (err) {
     console.error(`Error retrieving serial (eth0 mac): ${err}`)
   }
@@ -534,7 +532,8 @@ export async function writeScreen(options) {
       method: 'POST',
     })
     req.write(params)
-    setTimeout(() => resolve(), 200)
+    req.end()
+    req.on('finish', () => resolve())
   })
 }
 
@@ -545,8 +544,9 @@ export async function drawScreen(image) {
       path: '/image',
       method: 'POST',
     })
+    req.on('finish', () => resolve())
     req.write(image)
-    setTimeout(() => resolve(), 200)
+    req.end()
   })
 }
 

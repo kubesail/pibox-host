@@ -68,6 +68,7 @@ export default async function handler(req, res) {
     share = config.shares[config.shares.length - 1]
   }
 
+  share.users = users
   share.groupName = 'samba-' + sha256HexDigest(users.sort().join(',')).substring(0, 16) // 31 char limit for total group name
   if (!config.groups.find((group) => group.groupName === share.groupName)) {
     createGroup(share.groupName, users) // Async function, but we don't need to await it. Group creation can happen out of request cycle

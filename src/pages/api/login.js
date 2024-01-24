@@ -81,13 +81,13 @@ export default async function handler(req, res) {
     try {
       await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/sda encrypted_sda`)
     } catch (err) {
-      console.log(c.red(`Error unlocking /dev/sda: ${err.stderr}`))
+      console.log(c.red(`Error unlocking /dev/sda (command and output hidden for security)`))
     }
     if (global.ALL_DISKS_ENCRYPTED) {
       try {
         await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/sdb encrypted_sdb`)
       } catch (err) {
-        console.log(c.red(`Error unlocking /dev/sdb: ${err.stderr}`))
+        console.log(c.red(`Error unlocking /dev/sdb (command and output hidden for security)`))
       }
     } else {
       // store password for immediate next usage in expand-disks.js
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
     }
     await setTimeoutPromise(1000)
     await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
-    await setTimeoutPromise(1000)
+    await setTimeoutPromise(3000)
     global.ALL_DISKS_UNLOCKED = true
     startHomeScreen()
   }
@@ -109,6 +109,7 @@ export default async function handler(req, res) {
 
 async function pushSession({ sessionKey, sessionName, sessionPlatform, user }) {
   const config = await getConfig()
+  console.lo
   const existingSession = config.sessions.find((session) => session.key === sessionKey)
   if (!existingSession) {
     config.sessions.push({

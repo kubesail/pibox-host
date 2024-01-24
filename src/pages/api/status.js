@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     version: version,
     publicKey: global.PUBLIC_CERTIFICATE?.toString() || '',
     setupComplete,
-    newHddAvailable: !global.ALL_DISKS_ENCRYPTED,
+    newHddAvailable: setupComplete && !global.ALL_DISKS_ENCRYPTED,
     unlocked: global.ALL_DISKS_UNLOCKED,
   })
 }

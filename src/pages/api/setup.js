@@ -80,6 +80,7 @@ async function initialSetup(req, res) {
     await setSystemPassword(username, password)
     // give owner user privileges
     await execAsync(`adduser ${username} sudo`)
+    setTimeoutPromise(1000)
     await execAsync(`usermod -aG sambagroup ${username}`)
   } catch (err) {
     return res.status(400).json({ error: err.message })
@@ -115,12 +116,20 @@ async function initialSetup(req, res) {
   for (const disk of disks) {
     console.log(`Enabling encryption for disk ${disk.name}`)
     // IMPORTANT silent exec here to avoid leaking password to logs
-    await execAsync(`echo "${drivePassword}" | cryptsetup luksFormat /dev/${disk.name}`)
+    try {
+      await execAsync(`echo "${drivePassword}" | cryptsetup luksFormat /dev/${disk.name}`)
+    } catch (err) {
+      return res.status(500).json({ error: `Error encrypting drive ${disk.name}.` })
+    }
     console.log(`Unlocking disk ${disk.name}`)
     disk.unlockedName = `encrypted_${disk.name}`
     disk.unlockedPath = `/dev/mapper/${disk.unlockedName}`
     // IMPORTANT silent exec here to avoid leaking password to logs
-    await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/${disk.name} ${disk.unlockedName}`)
+    try {
+      await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/${disk.name} ${disk.unlockedName}`)
+    } catch (err) {
+      return res.status(500).json({ error: `Error unlocking drive ${disk.name}.` })
+    }
     try {
       await execAndLog('disks:' + disk.name, `pvcreate ${disk.unlockedPath}`)
     } catch (err) {

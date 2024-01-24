@@ -11,11 +11,6 @@
   --yellow: #c98d09;
 }
 
-header {
-  background-color: var(--blue);
-  color: white;
-}
-
 body {
   background-color: white;
 }
