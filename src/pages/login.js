@@ -7,6 +7,8 @@ import { nanoid } from 'nanoid'
 import Header from '@/components/Header'
 import { useSearchParams } from 'next/navigation'
 
+let loggingIn = false
+
 export default function Home() {
   const [loading, setLoading] = useState(false)
   const [password, setPassword] = useState('')
@@ -17,11 +19,13 @@ export default function Home() {
   const searchParams = useSearchParams()
   const oneTimePassword = searchParams.get('oneTimePassword')
 
-  if (oneTimePassword && !loading) {
-    login()
-  }
+  useEffect(() => {
+    if (oneTimePassword) login()
+  }, [oneTimePassword])
 
   async function login() {
+    if (loggingIn) return
+    loggingIn = true
     setLoading(true)
     const sessionKey = nanoid()
     window.localStorage.setItem('sessionKey', sessionKey)
