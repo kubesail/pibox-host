@@ -256,7 +256,9 @@ export async function prepareUpdate(newVersion) {
     if (err.code !== 'ENOENT') throw err
   }
   await writeFile(UPDATE_IN_PROGRESS_CHECK_FILEPATH, '')
-  await saveConfig(config)
+  try {
+    await saveConfig(config)
+  } catch (err) {}
 
   // Download new version
   console.log(`Downloading new version ${newVersion}`)
@@ -286,11 +288,13 @@ export async function update(newVersion) {
   const newServiceFile = serviceFile.replace(/PIBOX_HOST_VERSION/g, newVersion)
   await writeFile('/etc/systemd/system/pibox-host.service', newServiceFile)
 
-  const config = await getConfig()
-  config.downloadInProgress = false
-  delete config.downloadSize
-  delete config.downloadPath
-  await saveConfig(config)
+  try {
+    const config = await getConfig()
+    config.downloadInProgress = false
+    delete config.downloadSize
+    delete config.downloadPath
+    await saveConfig(config)
+  } catch (err) {}
 
   // restart pibox-host service
   await execAsync('systemctl daemon-reload')
