@@ -1,6 +1,6 @@
 {
   "name": "pibox-host",
-  "version": "1.29.0",
+  "version": "1.30.0",
   "private": true,
   "bin": "server.js",
   "scripts": {

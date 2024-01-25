@@ -17,6 +17,7 @@ import {
   SETUP_COMPLETE_CHECK_FILEPATH,
   UPDATE_IN_PROGRESS_CHECK_FILEPATH,
 } from '@/constants'
+import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
 export default async function handler(req, res) {
   try {
