@@ -13,7 +13,12 @@ Endpoints are documented in Postman: https://www.postman.com/piboxapi/workspace/
 
 ```bash
 # Hdd tools, password tools, cairo for canvas NPM package
-apt-get install -y smartmontools cryptsetup whois jq vim curl build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+apt-get install -y \
+  vim lvm2 raspberrypi-kernel-headers samba samba-common-bin \
+  tmate sysstat git iptables cryptsetup whois \
+  jq build-essential libcairo2-dev libpango1.0-dev \
+  libjpeg-dev libgif-dev librsvg2-dev nodejs
+
 # Give sudoers NOPASSWD requirement (same as pi user)
 sed -i 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
 # Create root files directory (and mount it)
