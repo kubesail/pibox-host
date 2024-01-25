@@ -3,7 +3,7 @@ import https from 'https'
 import fs from 'fs'
 import { promisify } from 'util'
 import { exec, spawn } from 'child_process'
-import { readFile, writeFile, readdir, rm, mkdir, stat } from 'fs/promises'
+import { readFile, writeFile, readdir, rm, mkdir, stat, unlink } from 'fs/promises'
 import {
   OWNER_FILE_PATH,
   CONFIG_FILE_PATH,
@@ -188,8 +188,8 @@ export async function drawHomeScreen() {
     })
     req.write(buffer)
     req.end()
-  } catch {
-    console.warn('Error writing to framebuffer')
+  } catch (err) {
+    console.warn('Error writing to framebuffer', err)
   }
 }
 
@@ -251,7 +251,7 @@ export async function prepareUpdate(newVersion) {
   }
   try {
     await stat(UPDATE_IN_PROGRESS_CHECK_FILEPATH)
-    return res.status(400).json({ error: 'Download already in progress' })
+    return { error: 'Download already in progress' }
   } catch (err) {
     if (err.code !== 'ENOENT') throw err
   }
@@ -295,6 +295,7 @@ export async function update(newVersion) {
     delete config.downloadPath
     await saveConfig(config)
   } catch (err) {}
+  await unlink(UPDATE_IN_PROGRESS_CHECK_FILEPATH)
 
   // restart pibox-host service
   await execAsync('systemctl daemon-reload')
@@ -556,8 +557,8 @@ export async function writeScreen(options) {
       req.write(params)
       req.end()
       req.on('finish', () => resolve())
-    } catch {
-      console.warn('Error writing to framebuffer')
+    } catch (err) {
+      console.warn('Error writing to framebuffer', err)
       resolve()
     }
   })
@@ -574,8 +575,8 @@ export async function drawScreen(image) {
       req.on('finish', () => resolve())
       req.write(image)
       req.end()
-    } catch {
-      console.warn('Error writing to framebuffer')
+    } catch (err) {
+      console.warn('Error writing to framebuffer', err)
       resolve()
     }
   })

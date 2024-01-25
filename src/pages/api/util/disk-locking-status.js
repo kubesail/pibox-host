@@ -18,8 +18,8 @@ export default async function handler(req, res) {
     disk.unlocked = unlocked
   }
   // if all disks are unlocked, mount the LVM
-  global.ALL_DISKS_UNLOCKED = disks.every((disk) => disk.unlocked === true)
-  global.ALL_DISKS_ENCRYPTED = disks.every((disk) => disk.encrypted === true)
+  global.ALL_DISKS_UNLOCKED = disks.length > 0 && disks.every((disk) => disk.unlocked === true)
+  global.ALL_DISKS_ENCRYPTED = disks.length > 0 && disks.every((disk) => disk.encrypted === true)
 
   if (global.ALL_DISKS_UNLOCKED) {
     try {
