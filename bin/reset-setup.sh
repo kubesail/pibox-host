@@ -9,7 +9,7 @@ if [ -z "$USER" ]; then
     exit 1
 fi
 
-deluser --remove-home dan
+deluser --remove-home $USER
 umount /pibox
 vgchange -an pibox_vg
 echo "YES" | cryptsetup luksClose /dev/mapper/encrypted_sda
