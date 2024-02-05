@@ -1,8 +1,8 @@
 const { createServer } = require('http')
 const { createServer: createHttpsServer } = require('https')
 const next = require('next')
-const { mkdir } = require('fs/promises')
-const { exec } = require('child_process')
+const { mkdir, readFile, writeFile } = require('fs/promises')
+const { exec, spawn } = require('child_process')
 const promisify = require('util').promisify
 const fs = require('fs')
 
@@ -27,6 +27,7 @@ const handle = app.getRequestHandler()
 
 async function start() {
   console.log('Starting PiBox Host')
+  await startFramebuffer()
   app.prepare().then(async () => {
     createServer((req, res) => {
       handle(req, res)
@@ -81,5 +82,33 @@ async function getOrCreateKeys() {
     await execAsync(keyCmd)
     await execAsync(certCmd)
     return await getKeys()
+  }
+}
+
+async function startFramebuffer() {
+  try {
+    // Check that SPI is enabled
+    let bootConfigLines = (await readFile('/boot/config.txt', 'utf8')).split('\n')
+    let requiresReboot = false
+    bootConfigLines = bootConfigLines.map((line) => {
+      if (line === 'dtparam=spi=off' || line === '#dtparam=spi=on' || line === '#dtparam=spi=off') {
+        requiresReboot = true
+        line = 'dtparam=spi=on'
+      }
+      if (line === 'dtoverlay=drm-minipitft13,rotate=0,fps=60') line = '' // remove old TFT driver
+      return line
+    })
+    if (requiresReboot) {
+      console.log('Enabling SPI, rebooting...')
+      await writeFile('/boot/config.txt', bootConfigLines.join('\n'))
+      await execAsync('reboot now')
+      process.exit()
+    }
+
+    // Start framebuffer
+    const childProcess = spawn('./pibox-framebuffer', [], { stdio: 'inherit' })
+    childProcess.on('error', (err) => console.log('Error starting framebuffer:', err))
+  } catch (err) {
+    console.log('Could not start framebuffer, skipping...', err)
   }
 }

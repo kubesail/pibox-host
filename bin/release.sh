@@ -32,7 +32,7 @@ if [[ "$buildresponse" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
   rm -rf node_modules
   yarn install --production
   NEXT_TELEMETRY_DISABLED=1 yarn next build
-  tar -cvzf pibox-host-$PIBOX_HOST_VERSION.tar.gz .next server.js node_modules package.json pibox-host.service
+  tar -cvzf pibox-host-$PIBOX_HOST_VERSION.tar.gz .next server.js node_modules package.json pibox-host.service pibox-framebuffer
 fi 
 
 
