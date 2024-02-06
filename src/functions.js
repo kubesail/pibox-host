@@ -180,17 +180,7 @@ export async function drawHomeScreen() {
   // Save the canvas as an image
   const buffer = canvas.toBuffer('image/png')
 
-  try {
-    const req = http.request({
-      socketPath: '/var/run/pibox/framebuffer.sock',
-      path: '/image',
-      method: 'POST',
-    })
-    req.write(buffer)
-    req.end()
-  } catch (err) {
-    console.warn('Error writing to framebuffer', err)
-  }
+  await drawScreen(buffer)
 }
 
 export async function checkSetupComplete() {
@@ -545,41 +535,40 @@ export function sha256HexDigest(data) {
   return createHash('sha256').update(data).digest('hex')
 }
 
-export async function writeScreen(options) {
-  return new Promise((resolve, reject) => {
-    const params = new URLSearchParams(options).toString()
-    try {
-      const req = http.request({
-        socketPath: '/var/run/pibox/framebuffer.sock',
-        path: `/text?${params}`,
-        method: 'POST',
-      })
-      req.write(params)
-      req.end()
-      req.on('finish', () => resolve())
-    } catch (err) {
-      console.warn('Error writing to framebuffer', err)
-      resolve()
+export async function writeScreen(lines) {
+  const width = 240
+  const height = 240
+  const canvas = createCanvas(width, height)
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, width, height)
+
+  // each `line` is an object with `content`, `color`, and `size`
+  for (const line of lines) {
+    let x = 10
+    let y = line.y
+    ctx.font = `${line.size}px Arial`
+    if (line.bold) {
+      ctx.font = `bold ${ctx.font}`
     }
-  })
+    if (line.center) {
+      ctx.textAlign = 'center'
+      x = width / 2
+    }
+    ctx.fillStyle = `#${line.color}`
+    ctx.fillText(line.content, x, line.y || height / 2 || 0)
+  }
+
+  const buffer = canvas.toBuffer('image/png')
+  await drawScreen(buffer)
 }
 
 export async function drawScreen(image) {
-  return new Promise((resolve, reject) => {
-    try {
-      const req = http.request({
-        socketPath: '/var/run/pibox/framebuffer.sock',
-        path: '/image',
-        method: 'POST',
-      })
-      req.on('finish', () => resolve())
-      req.write(image)
-      req.end()
-    } catch (err) {
-      console.warn('Error writing to framebuffer', err)
-      resolve()
-    }
-  })
+  try {
+    await fetch('http://localhost:2019/image', { method: 'POST', body: image })
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 export async function startHomeScreen() {

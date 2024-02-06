@@ -18,9 +18,10 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true })
   }
 
-  await writeScreen({ content: 'Updating...', color: '3C89C7', background: '000000', size: 36, y: 40 })
-  await writeScreen({ content: 'Getting latest security update before setup', color: '999', size: 26, y: 130 })
-  await writeScreen({ content: 'Please wait', color: 'ccc', size: 36, y: 210 })
+  await writeScreen([
+    { content: 'Updating...\nPlease Wait', color: '3C89C7', background: '000000', size: 36, y: 55 },
+    { content: 'Downloading latest\nsecurity update\nprior to setup', color: '999', size: 26, y: 145 },
+  ])
 
   //TODO call /update to latest
   console.log(

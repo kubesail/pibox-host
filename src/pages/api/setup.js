@@ -83,8 +83,10 @@ async function initialSetup(req, res) {
     }
   }
 
-  await writeScreen({ content: 'Setup In Progress', color: '3C89C7', background: '000000', size: 36, y: 70 })
-  await writeScreen({ content: 'Please wait while encryption is being enabled', color: 'ccc', size: 28, y: 170 })
+  await writeScreen([
+    { color: '3C89C7', size: 36, y: 55, content: 'Setup In\nProgress...' },
+    { color: 'CCC', size: 28, y: 145, content: 'Please wait while\ndisks are being\nencrypted' },
+  ])
 
   try {
     await createUser(username, fullName)
