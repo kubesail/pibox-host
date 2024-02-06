@@ -1,5 +1,6 @@
 import { checkForUpdates, prepareUpdate, update, writeScreen, checkSetupComplete } from '@/functions'
 import c from 'chalk'
+import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,6 +12,8 @@ export default async function handler(req, res) {
     console.log(c.cyan('Setup has already been completed. Not checking for automatic updates.'))
     return res.status(400).json({ error: 'Device has already been set up. Not checking for automatic updates.' })
   }
+
+  await setTimeoutPromise(5000) // wait a few seconds to allow DNS resolver to start
 
   const { currentVersion, latestVersion, updateAvailable } = await checkForUpdates(req, res)
   if (!updateAvailable) {

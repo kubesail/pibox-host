@@ -34,8 +34,8 @@ async function start() {
     }).listen(HTTP_PORT, async () => {
       console.log(`> Ready on http://${hostname}:${HTTP_PORT}`)
       await diskLockingStatus()
-      await autoUpdatePreSetup()
       await initActiveUsers()
+      await autoUpdatePreSetup()
     })
     const httpsOpts = await getOrCreateKeys()
     createHttpsServer(httpsOpts, (req, res) => {
