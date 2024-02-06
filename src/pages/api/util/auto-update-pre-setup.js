@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   await writeScreen([
     { content: 'Updating...\nPlease Wait', color: '3C89C7', background: '000000', size: 36, y: 55 },
-    { content: 'Downloading latest\nsecurity update\nprior to setup', color: '999', size: 26, y: 145 },
+    { content: 'Downloading\nlatest update\nprior to setup', color: '999', size: 26, y: 145 },
   ])
 
   //TODO call /update to latest
