@@ -84,8 +84,8 @@ async function initialSetup(req, res) {
   }
 
   await writeScreen([
-    { color: '3C89C7', size: 36, y: 55, content: 'Setup In\nProgress...' },
-    { color: 'CCC', size: 28, y: 145, content: 'Please wait while\ndisks are being\nencrypted' },
+    { color: '3C89C7', size: 34, y: 55, content: 'Setup In\nProgress...' },
+    { color: 'CCC', size: 26, y: 145, content: 'Please wait while\ndisks are being\nencrypted' },
   ])
 
   try {

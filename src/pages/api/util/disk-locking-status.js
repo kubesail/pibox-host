@@ -32,18 +32,18 @@ export default async function handler(req, res) {
   const setupComplete = await checkSetupComplete()
   if (!setupComplete) {
     await writeScreen([
-      { content: 'Welcome to\nPiBox!', color: '3C89C7', size: 36, y: 65, bold: true },
-      { content: 'Please use app\nto begin setup', color: 'ccc', size: 28, y: 170 },
+      { content: 'Welcome to\nPiBox!', color: '3C89C7', size: 32, y: 65 },
+      { content: 'Please use app\nto begin setup', color: 'ccc', size: 26, y: 170 },
     ])
   } else if (!global.ALL_DISKS_UNLOCKED) {
     await writeScreen([
-      { content: 'Disks Locked', color: '3C89C7', size: 34, y: 100, bold: true },
-      { content: 'Please login as\nowner to unlock', color: 'ccc', size: 28, y: 150 },
+      { content: 'Disks Locked', color: '3C89C7', size: 32, y: 95 },
+      { content: 'Please login as\nowner to unlock', color: 'ccc', size: 26, y: 150 },
     ])
   } else if (!global.ALL_DISKS_ENCRYPTED) {
     await writeScreen([
-      { content: 'New Disk\nAdded', color: '3C89C7', size: 36, y: 70 },
-      { content: 'Continue setup\nwithin app', color: 'ccc', size: 28, y: 165 },
+      { content: 'New Disk\nAdded', color: '3C89C7', size: 34, y: 70 },
+      { content: 'Expand storage\nwithin app', color: 'ccc', size: 26, y: 165 },
     ])
   } else {
     startHomeScreen()
