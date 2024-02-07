@@ -278,6 +278,10 @@ export async function update(newVersion) {
   const newServiceFile = serviceFile.replace(/PIBOX_HOST_VERSION/g, newVersion)
   await writeFile('/etc/systemd/system/pibox-host.service', newServiceFile)
 
+  // Flush filesystem changes
+  await execAsync('sync')
+  await setTimeoutPromise(2000)
+
   try {
     const config = await getConfig()
     config.downloadInProgress = false

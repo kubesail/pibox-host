@@ -30,10 +30,12 @@ export default async function handler(req, res) {
   }
 
   const setupComplete = await checkSetupComplete()
+  console.log({ setupComplete })
   if (!setupComplete) {
     await writeScreen([
-      { content: 'Welcome to\nPiBox!', color: '3C89C7', size: 32, y: 65 },
-      { content: 'Please use app\nto begin setup', color: 'ccc', size: 26, y: 170 },
+      { content: 'Welcome to\nPiBox!', color: '3C89C7', size: 32, y: 50 },
+      { content: 'Please use app\nto begin setup', color: 'ccc', size: 26, y: 140 },
+      { content: `v${global.VERSION}`, color: '999', size: 16, y: 220 },
     ])
   } else if (!global.ALL_DISKS_UNLOCKED) {
     await writeScreen([

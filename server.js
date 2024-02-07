@@ -28,6 +28,7 @@ const handle = app.getRequestHandler()
 async function start() {
   console.log('Starting PiBox Host')
   await startFramebuffer()
+  await getVersion()
   app.prepare().then(async () => {
     createServer((req, res) => {
       handle(req, res)
@@ -110,5 +111,15 @@ async function startFramebuffer() {
     childProcess.on('error', (err) => console.log('Error starting framebuffer:', err))
   } catch (err) {
     console.log('Could not start framebuffer, skipping...', err)
+  }
+}
+
+async function getVersion() {
+  try {
+    const pkgPath = process.cwd() + '/package.json'
+    const pkg = await readFile(pkgPath, 'utf8')
+    global.VERSION = JSON.parse(pkg).version
+  } catch (err) {
+    console.error(`Error reading package.json: ${err}`)
   }
 }
