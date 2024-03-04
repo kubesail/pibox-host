@@ -2,8 +2,6 @@ import { setTimeout } from 'timers/promises'
 import { execAsync, execAndLog, getLuksData } from '@/functions'
 import c from 'chalk'
 
-global.TEMP_LUKS_PASSWORD = 'ec4f2dbb3b140095550c9afbbb69b5d6fd9e814b9da82fad0b34e9fcbe56f1cb'
-
 export default async function handler(req, res) {
   const { mirrored } = req.body
   let disks = []
