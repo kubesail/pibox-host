@@ -1,6 +1,6 @@
 {
   "name": "pibox-host",
-  "version": "1.36.0",
+  "version": "1.37.0",
   "private": true,
   "bin": "server.js",
   "scripts": {
@@ -29,7 +29,7 @@
     "tailwindcss": "3.3.2"
   },
   "prettier": {
-    "printWidth": 120,
+    "printWidth": 180,
     "singleQuote": true,
     "semi": false
   }

@@ -7,11 +7,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const setupComplete = await checkSetupComplete()
-  if (setupComplete) {
-    console.log(c.cyan('Setup has already been completed. Not checking for automatic updates.'))
-    return res.status(400).json({ error: 'Device has already been set up. Not checking for automatic updates.' })
-  }
+  // const setupComplete = await checkSetupComplete()
+  // if (setupComplete) {
+  //   console.log(c.cyan('Setup has already been completed. Not checking for automatic updates.'))
+  //   return res.status(400).json({ error: 'Device has already been set up. Not checking for automatic updates.' })
+  // }
 
   await setTimeoutPromise(5000) // wait a few seconds to allow DNS resolver to start
 
@@ -23,7 +23,8 @@ export default async function handler(req, res) {
 
   await writeScreen([
     { content: 'Updating...\nPlease Wait', color: 'C98D09', size: 34, y: 55 },
-    { content: 'Downloading\nlatest update\nprior to setup', color: '999', size: 24, y: 145 },
+    // { content: 'Downloading\nlatest update\nprior to setup', color: '999', size: 24, y: 145 },
+    { content: 'Downloading\nlatest update', color: '999', size: 24, y: 145 },
   ])
 
   //TODO call /update to latest
