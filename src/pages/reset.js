@@ -97,7 +97,7 @@ export default function Home() {
 
         {!finalOutput && generatedCode && (
           <div className="flex flex-col">
-            {!inputValid && <p>Enter the reset code displayed on your PiBox's front screen</p>}
+            {!inputValid && <p>Enter the reset code displayed on the front screen of your PiBox</p>}
             <input
               type="text"
               value={firstLine}
