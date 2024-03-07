@@ -12,11 +12,7 @@ import {
   writeScreen,
 } from '@/functions'
 import { stat, open, mkdir, writeFile } from 'fs/promises'
-import {
-  PIBOX_UNENCRYPTED_CONFIG_DIR,
-  SETUP_COMPLETE_CHECK_FILEPATH,
-  UPDATE_IN_PROGRESS_CHECK_FILEPATH,
-} from '@/constants'
+import { PIBOX_UNENCRYPTED_CONFIG_DIR, SETUP_COMPLETE_CHECK_FILEPATH, UPDATE_IN_PROGRESS_CHECK_FILEPATH } from '@/constants'
 import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
 export default async function handler(req, res) {
@@ -79,7 +75,7 @@ async function initialSetup(req, res) {
     await execAsync(`deluser --remove-home pi`) // delete default pi user
   } catch (err) {
     if (!err.stderr.includes('does not exist')) {
-      throw err
+      console.log('Error deleting pi user:', err)
     }
   }
 

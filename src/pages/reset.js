@@ -42,18 +42,18 @@ export default function Home() {
       return
     }
 
-    if (status !== 200) {
-      setFinalOutput(
-        <>
-          <h2>
-            <FontAwesomeIcon icon={faCheck} className="text-green-500 mr-4" />
-            Reset completed with warnings
-          </h2>
-          <pre>{body.error}</pre>
-        </>
-      )
-      return
-    }
+    // if (status !== 200) {
+    //   setFinalOutput(
+    //     <>
+    //       <h2>
+    //         <FontAwesomeIcon icon={faCheck} className="text-green-500 mr-4" />
+    //         Reset completed with warnings
+    //       </h2>
+    //       <pre>{body.error}</pre>
+    //     </>
+    //   )
+    //   return
+    // }
     setFinalOutput(
       <>
         <h2>
