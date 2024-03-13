@@ -170,6 +170,7 @@ async function initialSetup(req, res) {
 
   await saveOwner(username)
   await saveConfig(config)
+  execAsync('sync')
   startHomeScreen()
   res.status(200).json({ success: true })
 }

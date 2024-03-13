@@ -4,12 +4,7 @@ import fs from 'fs'
 import { promisify } from 'util'
 import { exec, spawn } from 'child_process'
 import { readFile, writeFile, readdir, rm, mkdir, stat, unlink } from 'fs/promises'
-import {
-  OWNER_FILE_PATH,
-  CONFIG_FILE_PATH,
-  SETUP_COMPLETE_CHECK_FILEPATH,
-  UPDATE_IN_PROGRESS_CHECK_FILEPATH,
-} from '@/constants'
+import { OWNER_FILE_PATH, CONFIG_FILE_PATH, SETUP_COMPLETE_CHECK_FILEPATH, UPDATE_IN_PROGRESS_CHECK_FILEPATH } from '@/constants'
 import { createHash } from 'crypto'
 import { join } from 'path'
 import { createCanvas } from 'canvas'
@@ -225,9 +220,7 @@ export async function prepareUpdate(newVersion) {
 
   const ghResponse = await fetch('https://api.github.com/repos/kubesail/pibox-host/releases')
   const releases = await ghResponse.json()
-  const release = releases
-    .find((r) => r.tag_name === newVersion)
-    ?.assets.find((asset) => asset.name === `pibox-host-${newVersion}.tar.gz`)
+  const release = releases.find((r) => r.tag_name === newVersion)?.assets.find((asset) => asset.name === `pibox-host-${newVersion}.tar.gz`)
   if (!release) {
     return { error: 'Version not found' }
   }
@@ -349,9 +342,7 @@ export async function createUser(user, fullName) {
 
   // check that user is a valid unix username
   if (!user.match(/^[a-z0-9_-]{1,30}$/)) {
-    throw new Error(
-      'Invalid username. Usernames must be less than 30 characters and consist of only alphanumeric characters, dashes, or underscores'
-    )
+    throw new Error('Invalid username. Usernames must be less than 30 characters and consist of only alphanumeric characters, dashes, or underscores')
   }
 
   // check that the new user doesn't already exist
@@ -391,7 +382,7 @@ export async function middlewareAuth(req, res) {
   //   ],
   // };
 
-  if (!global.ALL_DISKS_UNLOCKED){
+  if (!global.ALL_DISKS_UNLOCKED) {
     return false
   }
 
