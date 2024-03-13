@@ -80,21 +80,25 @@ export default async function handler(req, res) {
     // TODO a smarter way to do this is to iterate through all block devices and find ones that are encrypted. This could be stored globally, via disk-locking-status.js
     try {
       await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/sda encrypted_sda`)
+      console.log('sda unlocked')
     } catch (err) {
       console.log(c.red(`Error unlocking /dev/sda (command and output hidden for security)`))
     }
-    if (global.ALL_DISKS_ENCRYPTED) {
-      try {
-        await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/sdb encrypted_sdb`)
-      } catch (err) {
-        console.log(c.red(`Error unlocking /dev/sdb (command and output hidden for security)`))
+    if (global.DISK_COUNT === 2) {
+      if (global.ALL_DISKS_ENCRYPTED) {
+        try {
+          await execAsync(`echo "${drivePassword}" | cryptsetup luksOpen /dev/sdb encrypted_sdb`)
+          console.log('sdb unlocked')
+        } catch (err) {
+          console.log(c.red(`Error unlocking /dev/sdb (command and output hidden for security)`))
+        }
+      } else {
+        // store password for immediate next usage in expand-disks.js
+        global.TEMP_LUKS_PASSWORD = drivePassword
+        setTimeout(() => {
+          global.TEMP_LUKS_PASSWORD = null
+        }, 1000 * 60 * 5) // Expire in 5 minutes if not used
       }
-    } else {
-      // store password for immediate next usage in expand-disks.js
-      global.TEMP_LUKS_PASSWORD = drivePassword
-      setTimeout(() => {
-        global.TEMP_LUKS_PASSWORD = null
-      }, 1000 * 60 * 5) // Expire in 5 minutes if not used
     }
     await setTimeoutPromise(1000)
     await execAndLog('GLOBAL', `mount /dev/pibox_vg/pibox_lv /pibox`)
@@ -109,7 +113,6 @@ export default async function handler(req, res) {
 
 async function pushSession({ sessionKey, sessionName, sessionPlatform, user }) {
   const config = await getConfig()
-  console.lo
   const existingSession = config.sessions.find((session) => session.key === sessionKey)
   if (!existingSession) {
     config.sessions.push({

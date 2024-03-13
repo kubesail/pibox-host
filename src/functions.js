@@ -391,6 +391,10 @@ export async function middlewareAuth(req, res) {
   //   ],
   // };
 
+  if (!global.ALL_DISKS_UNLOCKED){
+    return false
+  }
+
   const [_scheme, sessionKey] = (req.headers?.authorization || '').split(' ')
   if (!sessionKey) {
     return false
