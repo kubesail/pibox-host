@@ -68,14 +68,9 @@ export default async function handler(req, res) {
 
 async function resetDrives() {
   await execAndLog('GLOBAL', `umount /pibox`, { bypassError: true })
-  await execAndLog('GLOBAL', `lvdisplay | grep "LV Path" | awk '{print $3}' | xargs -I {} lvchange -an {}`, { bypassError: true })
-  await execAndLog('GLOBAL', `vgchange -an`, { bypassError: true })
-  await execAndLog('GLOBAL', `lvremove /dev/pibox_vg/pibox_lv -y`, { bypassError: true })
-  await execAndLog('GLOBAL', `vgremove pibox_vg -y`, { bypassError: true })
-  await execAndLog('DRIVE1', `pvremove /dev/sda -y`, { bypassError: true })
-  await execAndLog('DRIVE2', `pvremove /dev/sdb -y`, { bypassError: true })
-  await execAndLog('DRIVE1', `echo "YES" | cryptsetup erase /dev/sda`, { bypassError: true })
-  await execAndLog('DRIVE2', `echo "YES" | cryptsetup erase /dev/sdb`, { bypassError: true })
-  await execAndLog('DRIVE1', `dd if=/dev/zero of=/dev/sda bs=1M count=10`, { bypassError: true })
-  await execAndLog('DRIVE2', `dd if=/dev/zero of=/dev/sdb bs=1M count=10`, { bypassError: true })
+  await execAndLog('GLOBAL', `vgchange -an pibox_vg`, { bypassError: true })
+  await execAndLog('GLOBAL', `echo "YES" | cryptsetup luksClose /dev/mapper/encrypted_sda`, { bypassError: true })
+  await execAndLog('GLOBAL', `echo "YES" | cryptsetup luksClose /dev/mapper/encrypted_sdb`, { bypassError: true })
+  await execAndLog('DRIVE1', `dd if=/dev/zero of=/dev/sda bs=1M count=100`, { bypassError: true })
+  await execAndLog('DRIVE2', `dd if=/dev/zero of=/dev/sdb bs=1M count=100`, { bypassError: true })
 }
