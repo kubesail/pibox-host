@@ -37,7 +37,7 @@ export default function Home() {
     setLoading(false)
   }
 
-  useEffect(() => getSshSettings(), [])
+  useEffect(() => whoami(), [])
 
   return (
     <>
