@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUser } from '@fortawesome/free-solid-svg-icons'
+import { faUser, faGear } from '@fortawesome/free-solid-svg-icons'
 import { fetchApi } from '@/ui-functions'
 
 export default function Header({ loadUser = true }) {
@@ -30,22 +30,27 @@ export default function Header({ loadUser = true }) {
           <Link href="/" className="text-3xl font-semibold">
             PiBox
           </Link>
-          <div>
-            {loading ? (
-              <>...</>
-            ) : whoami ? (
-              <div className="mr-4">
-                <FontAwesomeIcon icon={faUser} className="mr-1" />
-                {whoami?.linuxUser}
-                <Link href="/logout" className="ml-4">
-                  Logout
-                </Link>
-              </div>
-            ) : (
-              <div>
-                <Link href="/login">Login</Link>
-              </div>
-            )}
+          <div className="flex items-center">
+            <div>
+              {loading ? (
+                <>...</>
+              ) : whoami ? (
+                <div>
+                  <FontAwesomeIcon icon={faUser} className="mr-1" />
+                  {whoami?.linuxUser}
+                  <Link href="/logout" className="ml-4">
+                    Logout
+                  </Link>
+                </div>
+              ) : (
+                <div>
+                  <Link href="/login">Login</Link>
+                </div>
+              )}
+            </div>
+            <Link href="/settings" className="ml-4">
+              <FontAwesomeIcon icon={faGear} className="mr-1" />
+            </Link>
           </div>
         </div>
       </div>
