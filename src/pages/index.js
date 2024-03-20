@@ -60,9 +60,9 @@ export default function Home() {
               <ol className="list-decimal list-inside pl-4 mt-4">
                 <li>Open Finder → Locations → Network</li>
                 <li>Open PIBOX</li>
-                <li>Click the "Connect As..." button</li>
+                <li>Click the &quot;Connect As...&quot; button</li>
                 <ol className="list-disc list-inside ml-6">
-                  <li>Select "Registered User"</li>
+                  <li>Select &quot;Registered User&quot;</li>
                   <li>
                     Name: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">{whoami.linuxUser}</span>
                   </li>
@@ -82,10 +82,10 @@ export default function Home() {
                   Enter <b className="font-semibold">\\pibox.local</b>
                   and click <b className="font-semibold">Browse</b>
                 </li>
-                <li>Expand "pibox.local"</li>
-                <li>A dialog titled "Enter network credentials" appears</li>
+                <li>Expand &quot;pibox.local&quot;</li>
+                <li>A dialog titled &quot;Enter network credentials&quot; appears</li>
                 <ol className="list-disc list-inside ml-6">
-                  <li>Select "Registered User"</li>
+                  <li>Select &quot;Registered User&quot;</li>
                   <li>
                     User name: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">{whoami.linuxUser}</span>
                   </li>

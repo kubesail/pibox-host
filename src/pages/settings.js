@@ -7,24 +7,6 @@ export default function Home() {
   const [enabled, setEnabled] = useState([])
   const [passwordLogin, setPasswordLogin] = useState([])
 
-  async function whoami() {
-    if (typeof window === 'undefined') return
-    const { body } = await fetchApi('/api/whoami')
-    if (body.piboxConfigUser) {
-      getSshSettings()
-    } else {
-      window.location.href = '/login'
-    }
-  }
-
-  async function getSshSettings() {
-    if (typeof window === 'undefined') return
-    const { body } = await fetchApi('/api/ssh')
-    setLoading(false)
-    setEnabled(body.enabled)
-    setPasswordLogin(body.passwordLogin)
-  }
-
   async function updateSshSettings({ enabled, passwordLogin }) {
     setLoading(true)
     setEnabled(enabled)
@@ -37,7 +19,26 @@ export default function Home() {
     setLoading(false)
   }
 
-  useEffect(() => whoami(), [])
+  useEffect(() => {
+    async function whoami() {
+      if (typeof window === 'undefined') return
+      const { body } = await fetchApi('/api/whoami')
+      if (body.piboxConfigUser) {
+        getSshSettings()
+      } else {
+        window.location.href = '/login'
+      }
+    }
+
+    async function getSshSettings() {
+      if (typeof window === 'undefined') return
+      const { body } = await fetchApi('/api/ssh')
+      setLoading(false)
+      setEnabled(body.enabled)
+      setPasswordLogin(body.passwordLogin)
+    }
+    whoami()
+  }, [])
 
   return (
     <>

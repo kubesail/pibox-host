@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e # bail on error
 
-
+yarn lint
 
 # Build and package
 PIBOX_HOST_VERSION=v$(cat package.json | jq -r .version)
