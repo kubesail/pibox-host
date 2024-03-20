@@ -1,15 +1,6 @@
 import { readFile } from 'fs/promises'
 import { setTimeout as setTimeoutPromise } from 'timers/promises'
-import {
-  startHomeScreen,
-  getOwner,
-  getConfig,
-  saveConfig,
-  checkSystemPassword,
-  execAsync,
-  sha256HexDigest,
-  execAndLog,
-} from '@/functions'
+import { startHomeScreen, getOwner, getConfig, saveConfig, saveSambaConfig, ensureTimeMachine, checkSystemPassword, execAsync, sha256HexDigest, execAndLog } from '@/functions'
 import c from 'chalk'
 
 const OTP_EXPIRY_WINDOW = 1000 * 60 * 10 // 10 minutes
@@ -105,6 +96,8 @@ export default async function handler(req, res) {
     await setTimeoutPromise(3000)
     global.ALL_DISKS_UNLOCKED = true
     startHomeScreen()
+    saveSambaConfig()
+    ensureTimeMachine()
   }
 
   await pushSession({ sessionKey, sessionName, sessionPlatform, user })

@@ -1,5 +1,5 @@
 import { middlewareAuth, execAndLog } from '@/functions'
-import { getConfig, saveConfig, sha256HexDigest } from '@/functions'
+import { getConfig, saveConfig, saveSambaConfig, sha256HexDigest } from '@/functions'
 import { stat, writeFile } from 'fs/promises'
 import { PIBOX_FILES_PREFIX } from '@/constants'
 import { createDiffieHellmanGroup } from 'crypto'
@@ -75,27 +75,8 @@ export default async function handler(req, res) {
     config.groups.push({ groupName: share.groupName, users: users })
   }
 
-  let smbConfig = `# Group Name to User mapping`
-  smbConfig += config.groups.map((group) => `# ${group.groupName} => ${group.usersString}\n`)
-  smbConfig += `\n\n`
-  smbConfig = `[global]
-  netbios name = PIBOX
-  workgroup = WORKGROUP
-  access based share enum = yes
-  logging = syslog
-  server role = standalone server
-  veto files = /._*/.DS_Store/
-  delete veto files = yes\n\n`
-
-  config.shares.forEach((share) => {
-    smbConfig += `[${share.name}]
-    path = ${PIBOX_FILES_PREFIX + share.path}
-    read only = no
-    valid users = @${share.groupName}\n\n`
-  })
-
-  await saveConfig(config)
-  await writeFile('/etc/samba/smb.conf', smbConfig)
+  await saveConfig()
+  await saveSambaConfig()
   await execAndLog('global:samba', 'systemctl restart smbd')
   res.status(200).json({ message: 'Permissions updated' })
 }

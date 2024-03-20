@@ -63,7 +63,15 @@ export default function Home() {
       setLoading(false)
       setDisks(jsonData)
     }
-    fetchDisks()
+    async function fetchStatus() {
+      const { body } = await fetchApi('/api/status')
+      if (body.setupComplete) {
+        window.location.href = '/'
+      } else {
+        fetchDisks()
+      }
+    }
+    fetchStatus()
   }, [])
 
   return (
@@ -191,7 +199,7 @@ export default function Home() {
             {setupLoading ? (
               <div className="flex justify-center items-center mt-12">
                 <FontAwesomeIcon icon={faCircleNotch} className="fa-spin mr-2" />
-                Saving your settings. This may take a few seconds...
+                Setting up your PiBox. This may take a few seconds...
               </div>
             ) : (
               <div className="flex justify-between mt-4">

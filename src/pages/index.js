@@ -10,9 +10,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState(null)
   const [mac, setMac] = useState(false)
-  const [whoami, setWhoami] = useState({
-    linuxUser: '<username>',
-  })
+  const [whoami, setWhoami] = useState(null)
 
   async function getStatus() {
     if (typeof window === 'undefined') return
@@ -28,7 +26,9 @@ export default function Home() {
   async function getWhoami() {
     if (typeof window === 'undefined') return
     const { body: whoami } = await fetchApi('/api/whoami')
-    setWhoami(whoami)
+    if (!whoami.error) {
+      setWhoami(whoami)
+    }
   }
 
   useEffect(() => {
@@ -44,62 +44,72 @@ export default function Home() {
         {loading ? (
           <p>Loading...</p>
         ) : status?.unlocked ? (
-          <div>
-            <p>
-              To access your files from{' '}
-              <a className={`${mac ? 'font-semibold' : 'text-blue-500 cursor-pointer '}`} onClick={() => setMac(true)}>
-                Mac
-              </a>{' '}
-              /{' '}
-              <a className={`${!mac ? 'font-semibold' : 'text-blue-500 cursor-pointer '}`} onClick={() => setMac(false)}>
-                PC
-              </a>
-              :
-            </p>
-            {mac ? (
-              <ol className="list-decimal list-inside pl-4 mt-4">
-                <li>Open Finder → Locations → Network</li>
-                <li>Open PIBOX</li>
-                <li>Click the &quot;Connect As...&quot; button</li>
-                <ol className="list-disc list-inside ml-6">
-                  <li>Select &quot;Registered User&quot;</li>
+          whoami ? (
+            <div>
+              <p>
+                To access your files from{' '}
+                <a className={`${mac ? 'font-semibold' : 'text-blue-500 cursor-pointer '}`} onClick={() => setMac(true)}>
+                  Mac
+                </a>{' '}
+                /{' '}
+                <a className={`${!mac ? 'font-semibold' : 'text-blue-500 cursor-pointer '}`} onClick={() => setMac(false)}>
+                  PC
+                </a>
+                :
+              </p>
+              {mac ? (
+                <ol className="list-decimal list-inside pl-4 mt-4">
+                  <li>Open Finder → Locations → Network</li>
+                  <li>Open PIBOX</li>
+                  <li>Click the &quot;Connect As...&quot; button</li>
+                  <ol className="list-disc list-inside ml-6">
+                    <li>Select &quot;Registered User&quot;</li>
+                    <li>
+                      Name: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">{whoami.linuxUser}</span>
+                    </li>
+                    <li>
+                      Password: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">&lt;your password&gt;</span>
+                    </li>
+                  </ol>
+                </ol>
+              ) : (
+                <ol className="list-decimal list-inside pl-4 mt-4">
+                  <li>Open File Explorer → This PC</li>
+                  <li>Right Click → Add Network Location</li>
                   <li>
-                    Name: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">{whoami.linuxUser}</span>
+                    Click <b className="font-semibold">Next</b> → Custom Network Location → <b className="font-semibold">Next</b>
                   </li>
                   <li>
-                    Password: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">&lt;your password&gt;</span>
+                    Enter <b className="font-semibold">\\pibox.local</b>
+                    and click <b className="font-semibold">Browse</b>
+                  </li>
+                  <li>Expand &quot;pibox.local&quot;</li>
+                  <li>A dialog titled &quot;Enter network credentials&quot; appears</li>
+                  <ol className="list-disc list-inside ml-6">
+                    <li>Select &quot;Registered User&quot;</li>
+                    <li>
+                      User name: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">{whoami.linuxUser}</span>
+                    </li>
+                    <li>
+                      Password: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">&lt;your password&gt;</span>
+                    </li>
+                  </ol>
+                  <li>Select the folder want to map</li>
+                  <li>
+                    Click <b className="font-semibold">Ok</b> → <b className="font-semibold">Next</b> → <b className="font-semibold">Finish</b>
                   </li>
                 </ol>
-              </ol>
-            ) : (
-              <ol className="list-decimal list-inside pl-4 mt-4">
-                <li>Open File Explorer → This PC</li>
-                <li>Right Click → Add Network Location</li>
-                <li>
-                  Click <b className="font-semibold">Next</b> → Custom Network Location → <b className="font-semibold">Next</b>
-                </li>
-                <li>
-                  Enter <b className="font-semibold">\\pibox.local</b>
-                  and click <b className="font-semibold">Browse</b>
-                </li>
-                <li>Expand &quot;pibox.local&quot;</li>
-                <li>A dialog titled &quot;Enter network credentials&quot; appears</li>
-                <ol className="list-disc list-inside ml-6">
-                  <li>Select &quot;Registered User&quot;</li>
-                  <li>
-                    User name: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">{whoami.linuxUser}</span>
-                  </li>
-                  <li>
-                    Password: <span className="text-slate-600 bg-slate-200 border rounded border-slate-400 px-1 py-0.5 text-sm">&lt;your password&gt;</span>
-                  </li>
-                </ol>
-                <li>Select the folder want to map</li>
-                <li>
-                  Click <b className="font-semibold">Ok</b> → <b className="font-semibold">Next</b> → <b className="font-semibold">Finish</b>
-                </li>
-              </ol>
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              Please{' '}
+              <Link className="text-steel-blue-500 hover:underline" href="/login">
+                Login
+              </Link>
+              .
+            </div>
+          )
         ) : (
           <div>
             <div className="rounded bg-steel-blue-300 px-4 py-2 font-bold">

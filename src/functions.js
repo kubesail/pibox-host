@@ -12,8 +12,98 @@ import randomColor from 'randomcolor'
 import c from 'chalk'
 import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
+export async function saveSambaConfig() {
+  const { usedSpace, totalSpace } = await getStorage()
+  const remainingSpace = (totalSpace - usedSpace) * 1024
+  const config = await getConfig()
+  const owner = await getOwner()
+  let smbConfig = `# Group Name to User mapping`
+  smbConfig += config.groups.map((group) => `# ${group.groupName} => ${group.usersString}\n`)
+  smbConfig += `\n\n`
+  smbConfig = `[global]
+  netbios name = PIBOX
+  workgroup = WORKGROUP
+  access based share enum = yes
+  logging = syslog
+  server role = standalone server
+  veto files = /._*/.DS_Store/
+  delete veto files = yes
+
+  fruit:aapl = yes
+  fruit:nfs_aces = no
+  fruit:copyfile = no
+  fruit:model = PiBox
+  inherit permissions = yes
+  multicast dns register = no
+
+[PiBox Time Machine]
+  vfs objects = catia fruit streams_xattr
+  fruit:time machine = yes
+  fruit:time machine max size = ${remainingSpace}
+  comment = Time Machine Backup
+  path = /pibox/timemachine
+  available = yes
+  valid users = @${owner}
+  browseable = yes
+  guest ok = no
+  writable = yes
+
+[Files]
+  path = /pibox/files
+  read only = no
+  valid users = @${owner}
+\n`
+
+  config.shares.forEach((share) => {
+    smbConfig += `[${share.name}]
+    path = ${PIBOX_FILES_PREFIX + share.path}
+    read only = no
+    valid users = @${share.groupName}\n\n`
+  })
+
+  await writeFile('/etc/samba/smb.conf', smbConfig)
+  await execAndLog('global:samba', 'systemctl restart smbd')
+}
+
+export async function ensureTimeMachine() {
+  const owner = await getOwner()
+  const avahiConfig = `<?xml version="1.0" standalone='no'?>
+  <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+  <service-group>
+  <name replace-wildcards="yes">%h</name>
+  <service>
+  <type>_smb._tcp</type>
+  <port>445</port>
+  </service>
+  <service>
+    <type>_device-info._tcp</type>
+    <port>0</port>
+    <txt-record>model=RackMac</txt-record>
+    </service>
+    <service>
+    <type>_adisk._tcp</type>
+    <txt-record>dk0=adVN=PiBox Time Machine,adVF=0x82</txt-record>
+    <txt-record>sys=waMa=0,adVF=0x100</txt-record>
+  </service>
+  </service-group>`
+  await writeFile('/etc/avahi/services/samba.service', avahiConfig)
+  await execAndLog('global:samba', 'systemctl restart avahi-daemon')
+  await execAndLog('global:samba', 'mkdir -p /pibox/timemachine')
+  await execAndLog('global:samba', `chown ${owner}:${owner} /pibox/timemachine`)
+}
+
 export const execAsync = promisify(exec)
 const PRESET_COLORS = '#3B89C7,#C98D09,#1BBE4D,#D8D8D4,#774399,#FF7896,#F9F871'.split(',')
+
+export async function getStorage() {
+  const { stdout: dfOutput } = await execAsync('df /pibox')
+  const lines = dfOutput.split('\n')
+  const data = lines[1].split(/\s+/)
+  const usedSpace = data[2]
+  const totalSpace = data[1]
+  const percentageUsed = parseInt(data[4], 10)
+  return { usedSpace, totalSpace, percentageUsed }
+}
 
 export async function drawHomeScreen() {
   const start = performance.now()
@@ -24,13 +114,11 @@ export async function drawHomeScreen() {
   const ctx = canvas.getContext('2d')
 
   if (!global.storage || global.storage.lastChecked < Date.now() - 1000 * 60 * 1) {
-    const { stdout: dfOutput } = await execAsync('df /pibox')
-    const lines = dfOutput.split('\n')
-    const data = lines[1].split(/\s+/)
+    const { usedSpace, totalSpace, percentageUsed } = await getStorage()
     global.storage = {}
-    global.storage.usedSpace = data[2]
-    global.storage.totalSpace = data[1]
-    global.storage.percentageUsed = parseInt(data[4], 10)
+    global.storage.usedSpace = usedSpace
+    global.storage.totalSpace = totalSpace
+    global.storage.percentageUsed = percentageUsed
     global.storage.lastChecked = Date.now()
   }
 

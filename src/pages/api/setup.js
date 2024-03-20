@@ -10,6 +10,8 @@ import {
   setSambaPassword,
   startHomeScreen,
   writeScreen,
+  saveSambaConfig,
+  ensureTimeMachine,
 } from '@/functions'
 import { stat, mkdir, writeFile, unlink } from 'fs/promises'
 import { PIBOX_UNENCRYPTED_CONFIG_DIR, SETUP_COMPLETE_CHECK_FILEPATH, UPDATE_IN_PROGRESS_CHECK_FILEPATH } from '@/constants'
@@ -176,7 +178,10 @@ async function initialSetup(req, res) {
 
   await saveOwner(username)
   await saveConfig(config)
-  execAsync('sync')
+
+  saveSambaConfig()
+  ensureTimeMachine()
+  execAsync('sync') //flush changes to disk
   startHomeScreen()
   res.status(200).json({ success: true })
 }
