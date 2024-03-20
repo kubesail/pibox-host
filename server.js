@@ -12,6 +12,7 @@ const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
 const HTTP_PORT = process.env.HTTP_PORT || 80
 const HTTPS_PORT = process.env.HTTPS_PORT || 443
+const DISABLE_AUTO_UPDATE = process.env.DISABLE_AUTO_UPDATE || false
 const KEY_PATH = process.env.KEY_PATH || '/etc/ssl/private'
 const PRIVATE_KEY_PATH = `${KEY_PATH}/pibox.local.key`
 const CERTIFICATE_PATH = `${KEY_PATH}/pibox.local.crt`
@@ -57,6 +58,10 @@ async function initActiveUsers() {
 }
 
 async function autoUpdatePreSetup() {
+  if (DISABLE_AUTO_UPDATE) {
+    console.log('Auto Update overridden via environment variable. Skipping...')
+    return
+  }
   await fetch('http://localhost/api/util/auto-update-pre-setup', {
     method: 'POST',
     body: JSON.stringify({ version: 'latest' }),

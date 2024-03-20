@@ -11,7 +11,7 @@ import {
   startHomeScreen,
   writeScreen,
 } from '@/functions'
-import { stat, open, mkdir, writeFile } from 'fs/promises'
+import { stat, mkdir, writeFile, unlink } from 'fs/promises'
 import { PIBOX_UNENCRYPTED_CONFIG_DIR, SETUP_COMPLETE_CHECK_FILEPATH, UPDATE_IN_PROGRESS_CHECK_FILEPATH } from '@/constants'
 import { setTimeout as setTimeoutPromise } from 'timers/promises'
 
@@ -38,12 +38,14 @@ export default async function handler(req, res) {
 
 async function initialSetup(req, res) {
   if (req.method !== 'POST') {
+    await unlink(SETUP_COMPLETE_CHECK_FILEPATH)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   let { fullName, password, sessionKey, sessionName, sessionPlatform, disks, mirrored } = req.body
 
   if (!fullName || !password) {
+    await unlink(SETUP_COMPLETE_CHECK_FILEPATH)
     return res.status(400).json({ error: 'Missing full name or password' })
   }
 
@@ -51,23 +53,27 @@ async function initialSetup(req, res) {
   const username = firstName.toLowerCase().replace(/[^a-z0-9]/g, '')
 
   if (!sessionKey || !sessionName || !sessionPlatform) {
+    await unlink(SETUP_COMPLETE_CHECK_FILEPATH)
     return res.status(400).json({ error: 'Missing session key, name, or platform' })
   }
 
   // for each disk, disk.name should be a valid /dev/ path, like "sda", "sdb", etc.
   disks = disks.filter((disk) => /^sd[a-z]$/.test(disk.name)).map((disk) => ({ ...disk, path: `/dev/${disk.name}` }))
   if (!disks || !Array.isArray(disks) || disks.length < 1) {
+    await unlink(SETUP_COMPLETE_CHECK_FILEPATH)
     return res.status(400).json({ error: 'One or more disks are required to complete setup' })
   }
   for (const disk of disks) {
     try {
       await stat(disk.path)
     } catch (err) {
+      await unlink(SETUP_COMPLETE_CHECK_FILEPATH)
       return res.status(400).json({ error: `Disk ${disk.path} does not exist` })
     }
   }
 
   if (mirrored && disks.length !== 2) {
+    await unlink(SETUP_COMPLETE_CHECK_FILEPATH)
     return res.status(400).json({ error: 'Mirroring requires 2 disks' })
   }
 

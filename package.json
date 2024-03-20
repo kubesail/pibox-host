@@ -1,10 +1,10 @@
 {
   "name": "pibox-host",
-  "version": "1.44.0",
+  "version": "1.45.0",
   "private": true,
   "bin": "server.js",
   "scripts": {
-    "dev": "NEXT_TELEMETRY_DISABLED=1 NODE_ENV=development node server.js",
+    "dev": "NEXT_TELEMETRY_DISABLED=1 DISABLE_AUTO_UPDATE=1 NODE_ENV=development node server.js",
     "build": "rm -rf .next && NEXT_TELEMETRY_DISABLED=1 next build && tar $(cat package.json | jq .version)",
     "start": "NEXT_TELEMETRY_DISABLED=1 next start -p 80",
     "lint": "NEXT_TELEMETRY_DISABLED=1 next lint"

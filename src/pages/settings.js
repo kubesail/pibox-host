@@ -55,7 +55,7 @@ export default function Home() {
               </label>
               <label>
                 <input className="mr-2" type="checkbox" checked={passwordLogin} onChange={(e) => updateSshSettings({ enabled, passwordLogin: e.target.checked })} />
-                Allow Password login
+                Allow SSH Password login
               </label>
             </>
           )}

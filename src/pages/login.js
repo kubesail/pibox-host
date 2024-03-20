@@ -41,7 +41,7 @@ export default function Home() {
       },
     })
     if (status === 200) {
-      router.push('/files')
+      router.push('/')
       return
     }
     setLoading(false)
@@ -58,9 +58,7 @@ export default function Home() {
     }
     return (
       <section className="px-8 container mx-auto">
-        <div className="flex items-center justify-center h-screen">
-          You are being automatically logged in. Please wait.
-        </div>
+        <div className="flex items-center justify-center h-screen">You are being automatically logged in. Please wait.</div>
       </section>
     )
   }
@@ -73,23 +71,14 @@ export default function Home() {
         <section className="px-8 container mx-auto">
           <h1 className="text-3xl font-semibold mb-4 mt-2">Owner Login</h1>
           <form>
-            <input
-              className="border border-gray-300 p-2 w-full rounded"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <input className="border border-gray-300 p-2 w-full rounded" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
             {error && <p className="text-red-500">{error}</p>}
             {loading ? (
               <div className="mt-4 bg-steel-blue-500 hover:bg-steel-blue-600 text-white font-bold py-2 px-7 rounded inline-block">
                 <FontAwesomeIcon icon={faCircleNotch} className="fa-spin" />
               </div>
             ) : (
-              <button
-                className="mt-4 bg-steel-blue-500 hover:bg-steel-blue-600 text-white font-bold py-2 px-4 rounded"
-                onClick={login}
-              >
+              <button className="mt-4 bg-steel-blue-500 hover:bg-steel-blue-600 text-white font-bold py-2 px-4 rounded" onClick={login}>
                 Login
               </button>
             )}
