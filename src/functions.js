@@ -52,6 +52,7 @@ export async function saveSambaConfig() {
   path = /pibox/files
   read only = no
   valid users = @${owner}
+  force user = root
 \n`
 
   config.shares.forEach((share) => {

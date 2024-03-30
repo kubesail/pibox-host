@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e # bail on error
 
-yarn lint
 
 # Build and package
 PIBOX_HOST_VERSION=v$(cat package.json | jq -r .version)
@@ -21,6 +20,9 @@ read -r buildresponse
 # Prompt for publishing to GitHub
 echo "Would you like to publish a new release to GitHub? (y/n)"
 read -r ghresponse
+
+yarn
+yarn lint
 
 if [[ "$buildresponse" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
   # Check for dirty files
