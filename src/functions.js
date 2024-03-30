@@ -57,9 +57,11 @@ export async function saveSambaConfig() {
 
   config.shares.forEach((share) => {
     smbConfig += `[${share.name}]
-    path = ${PIBOX_FILES_PREFIX + share.path}
-    read only = no
-    valid users = @${share.groupName}\n\n`
+  path = ${PIBOX_FILES_PREFIX + share.path}
+  read only = no
+  valid users = @${share.groupName}
+  force user = root
+\n`
   })
 
   await writeFile('/etc/samba/smb.conf', smbConfig)
