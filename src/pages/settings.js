@@ -43,7 +43,7 @@ export default function Home() {
   return (
     <>
       <main className="">
-        <Header />
+        <Header defaultTab="Settings" />
         <section className="px-8 pt-4 container mx-auto">
           <h1 className="text-3xl font-semibold mb-4 mt-2">System Settings</h1>
           {loading ? (

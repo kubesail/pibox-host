@@ -1,10 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+  content: ['./src/pages/**/*.{js,ts,jsx,tsx,mdx}', './src/components/**/*.{js,ts,jsx,tsx,mdx}', './src/app/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
       backgroundImage: {
@@ -44,6 +40,16 @@ module.exports = {
         },
         'pibox-yellow': {
           500: '#c98d09',
+        },
+      },
+      container: {
+        // default breakpoints but with 40px removed
+        screens: {
+          sm: '600px',
+          md: '728px',
+          lg: '800px',
+          xl: '800px',
+          '2xl': '800px',
         },
       },
     },

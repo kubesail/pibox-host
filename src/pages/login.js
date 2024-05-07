@@ -66,8 +66,7 @@ export default function Home() {
   return (
     <>
       <main className="">
-        <Header />
-
+        <Header showNav={false} />
         <section className="px-8 container mx-auto">
           <h1 className="text-3xl font-semibold mb-4 mt-2">Owner Login</h1>
           <form>

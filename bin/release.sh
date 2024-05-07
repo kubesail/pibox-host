@@ -1,6 +1,5 @@
 #!/bin/bash
 
-tmux
 
 set -e # bail on error
 

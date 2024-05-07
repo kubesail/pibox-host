@@ -76,7 +76,7 @@ export default function Home() {
 
   return (
     <main className="text-slate-600">
-      <Header loadUser={false} />
+      <Header loadUser={false} showNav={false} />
       <section className="px-8 pt-4 container mx-auto">
         <div className="flex justify-between items-center mb-4 mt-2">
           <h1 className="text-3xl font-semibold">Initial Setup</h1>

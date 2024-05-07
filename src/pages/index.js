@@ -38,14 +38,14 @@ export default function Home() {
 
   return (
     <main className="">
-      <Header />
+      <Header showNav={status?.unlocked && whoami} defaultTab={'Files'} />
       <section className="px-8 pt-4 container mx-auto">
-        <h1 className="text-3xl font-semibold mb-4 mt-2">Welcome to PiBox</h1>
         {loading ? (
           <p>Loading...</p>
         ) : status?.unlocked ? (
           whoami ? (
             <div>
+              <h1 className="text-3xl font-semibold mb-4 mt-2">Welcome to PiBox</h1>
               <p>
                 To access your files from{' '}
                 <a className={`${mac ? 'font-semibold' : 'text-blue-500 cursor-pointer '}`} onClick={() => setMac(true)}>
