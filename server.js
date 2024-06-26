@@ -29,6 +29,7 @@ const handle = app.getRequestHandler()
 async function start() {
   console.log('Starting PiBox Host')
   await startFramebuffer()
+  await checkBootFirmwareCmdline()
   await getVersion()
   app.prepare().then(async () => {
     createServer((req, res) => {
@@ -92,9 +93,10 @@ async function getOrCreateKeys() {
 }
 
 async function startFramebuffer() {
+  const path = '/boot/firmware/config.txt'
   try {
     // Check that SPI is enabled
-    let bootConfigLines = (await readFile('/boot/config.txt', 'utf8')).split('\n')
+    let bootConfigLines = (await readFile(path, 'utf8')).split('\n')
     let requiresReboot = false
     bootConfigLines = bootConfigLines.map((line) => {
       if (line === 'dtparam=spi=off' || line === '#dtparam=spi=on' || line === '#dtparam=spi=off') {
@@ -106,7 +108,8 @@ async function startFramebuffer() {
     })
     if (requiresReboot) {
       console.log('Enabling SPI, rebooting...')
-      await writeFile('/boot/config.txt', bootConfigLines.join('\n'))
+      await writeFile(path, bootConfigLines.join('\n'))
+      await execAsync('sync')
       await execAsync('reboot now')
       process.exit()
     }
@@ -116,6 +119,23 @@ async function startFramebuffer() {
     childProcess.on('error', (err) => console.log('Error starting framebuffer:', err))
   } catch (err) {
     console.log('Could not start framebuffer, skipping...', err)
+  }
+}
+
+async function checkBootFirmwareCmdline() {
+  let cmdlineOpts = (await readFile('/boot/firmware/cmdline.txt', 'utf8')).split(' ')
+  const includesPcieAspm = cmdlineOpts.find((opt) => opt.startsWith('pcie_aspm='))
+  if (includesPcieAspm) {
+    console.log('✓ PCIe ASPM mode set:', includesPcieAspm)
+  } else {
+    // insert pcie_aspm=off before rootwait
+    const rootwaitIndex = cmdlineOpts.indexOf('rootwait')
+    cmdlineOpts.splice(rootwaitIndex, 0, 'pcie_aspm=off')
+    console.log('Disabling PCIe ASPM mode, rebooting...')
+    await writeFile('/boot/firmware/cmdline.txt', cmdlineOpts.join(' '))
+    await execAsync('sync')
+    await execAsync('reboot now')
+    process.exit()
   }
 }
 
